@@ -461,5 +461,52 @@ namespace Legion {
       std::abort();
     }
 
+    //--------------------------------------------------------------------------
+    DistributedID CopyAcrossUnstructured::find_instance_subspace(
+        PhysicalInstance instance) const
+    //--------------------------------------------------------------------------
+    {
+      if (instance == src_indirect_instance)
+        return expr->get_distributed_id();
+      if (instance == dst_indirect_instance)
+        return expr->get_distributed_id();
+      for (unsigned idx = 0; idx < src_fields.size(); idx++)
+        if (src_fields[idx].inst == instance)
+          return expr->get_distributed_id();
+      for (unsigned idx = 0; idx < dst_fields.size(); idx++)
+        if (dst_fields[idx].inst == instance)
+          return expr->get_distributed_id();
+      for (const IndirectRecord& record : src_indirections)
+        for (unsigned idx = 0; idx < record.instances.size(); idx++)
+          if (record.instances[idx] == instance)
+            return record.index_space.get_id(false /*ftiler*/);
+      for (const IndirectRecord& record : dst_indirections)
+        for (unsigned idx = 0; idx < record.instances.size(); idx++)
+          if (record.instances[idx] == instance)
+            return record.index_space.get_id(false /*filter*/);
+      AutoLock p_lock(preimage_lock, false /*exclusive*/);
+      std::map<PhysicalInstance, LgEvent>::const_iterator finder =
+          profiling_shadow_instances.find(instance);
+      if (finder != profiling_shadow_instances.end())
+        return expr->get_distributed_id();
+      // Should always have found it before this
+      std::abort();
+    }
+
+    //--------------------------------------------------------------------------
+    DistributedID CopyAcrossUnstructured::find_copy_expression(void) const
+    //--------------------------------------------------------------------------
+    {
+      return expr->record_profiler_expression();
+    }
+
+    //--------------------------------------------------------------------------
+    ReductionOpID CopyAcrossUnstructured::find_redop(void) const
+    //--------------------------------------------------------------------------
+    {
+      legion_assert(!dst_fields.empty());
+      return dst_fields.back().redop_id;
+    }
+
   }  // namespace Internal
 }  // namespace Legion

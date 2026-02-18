@@ -119,6 +119,10 @@ namespace Legion {
     public:
       // From InstanceNameClosure
       virtual LgEvent find_instance_name(PhysicalInstance inst) const = 0;
+      virtual DistributedID find_instance_subspace(
+          PhysicalInstance inst) const = 0;
+      virtual DistributedID find_copy_expression(void) const = 0;
+      virtual ReductionOpID find_redop(void) const = 0;
     public:
       virtual ApEvent execute(
           Operation* op, PredEvent pred_guard, ApEvent copy_precondition,
@@ -147,9 +151,10 @@ namespace Legion {
     class CopyAcrossUnstructured : public CopyAcrossExecutor {
     public:
       CopyAcrossUnstructured(
-          const bool preimages, const std::map<Reservation, bool>& rsrvs)
-        : CopyAcrossExecutor(preimages, rsrvs), src_indirect_field(0),
-          dst_indirect_field(0),
+          IndexSpaceExpression* exp, const bool preimages,
+          const std::map<Reservation, bool>& rsrvs)
+        : CopyAcrossExecutor(preimages, rsrvs), expr(exp),
+          src_indirect_field(0), dst_indirect_field(0),
           src_indirect_instance(PhysicalInstance::NO_INST),
           dst_indirect_instance(PhysicalInstance::NO_INST)
       { }
@@ -157,6 +162,10 @@ namespace Legion {
     public:
       // From InstanceNameClosure
       virtual LgEvent find_instance_name(PhysicalInstance inst) const override;
+      virtual DistributedID find_instance_subspace(
+          PhysicalInstance inst) const override;
+      virtual DistributedID find_copy_expression(void) const override;
+      virtual ReductionOpID find_redop(void) const override;
     public:
       virtual ApEvent execute(
           Operation* op, PredEvent pred_guard, ApEvent copy_precondition,
@@ -184,6 +193,8 @@ namespace Legion {
           const InstanceRef& indirect_instance, const bool is_range_indirection,
           const bool possible_out_of_range, const bool possible_aliasing,
           const bool exclusive_redop);
+    public:
+      IndexSpaceExpression* const expr;
     protected:
       mutable LocalLock preimage_lock;
     public:
@@ -316,7 +327,6 @@ namespace Legion {
           ApEvent indirection_event, const DomainT<DIM, T>& update_domain,
           Operation* op, size_t field_size, bool source) const;
     public:
-      IndexSpaceExpression* const expr;
       const DomainT<DIM, T> copy_domain;
       const ApEvent copy_domain_ready;
       const bool shadow_indirections;

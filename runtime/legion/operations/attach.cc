@@ -44,7 +44,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     PhysicalRegion AttachOp::initialize(
         InnerContext* ctx, const AttachLauncher& launcher,
-        Provenance* provenance)
+        Provenance* provenance, unsigned requirement_index)
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
@@ -167,7 +167,8 @@ namespace Legion {
           requirement, get_mapped_event(), get_completion_event(),
           ApUserEvent::NO_AP_USER_EVENT, false /*mapped*/, ctx, 0 /*map id*/,
           0 /*tag*/, false /*leaf*/, false /*virtual mapped*/,
-          launcher.collective, ctx->get_next_blocking_index()));
+          launcher.collective, ctx->get_next_blocking_index(),
+          requirement_index));
       // Restore privileges back to write-discard
       requirement.privilege = LEGION_WRITE_DISCARD;
       LegionSpy::log_attach_operation(
@@ -559,7 +560,7 @@ namespace Legion {
         InnerContext* ctx, RegionTreeNode* upper_bound,
         IndexSpaceNode* launch_bounds, const IndexAttachLauncher& launcher,
         const std::vector<unsigned>& indexes, Provenance* provenance,
-        const bool replicated)
+        const bool replicated, unsigned requirement_offset)
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
@@ -590,7 +591,7 @@ namespace Legion {
         points[idx] = runtime->get_operation<PointAttachOp>();
         const DomainPoint index_point = Point<1>(indexes[idx]);
         PhysicalRegionImpl* region = points[idx]->initialize(
-            this, ctx, launcher, index_point, indexes[idx]);
+            this, ctx, launcher, index_point, indexes[idx], requirement_offset);
         result->set_region(idx, region);
       }
       LegionSpy::log_attach_operation(
@@ -932,7 +933,7 @@ namespace Legion {
     PhysicalRegionImpl* PointAttachOp::initialize(
         IndexAttachOp* own, InnerContext* ctx,
         const IndexAttachLauncher& launcher, const DomainPoint& point,
-        unsigned index)
+        unsigned index, unsigned requirement_offset)
     //--------------------------------------------------------------------------
     {
       legion_assert(index < launcher.handles.size());
@@ -1082,7 +1083,8 @@ namespace Legion {
           requirement, get_mapped_event(), get_completion_event(),
           ApUserEvent::NO_AP_USER_EVENT, false /*mapped*/, ctx, 0 /*map id*/,
           0 /*tag*/, false /*leaf*/, false /*virtual mapped*/,
-          false /*collective*/, ctx->get_next_blocking_index()));
+          false /*collective*/, ctx->get_next_blocking_index(),
+          requirement_offset + index));
       // Restore privileges back to write-discard
       requirement.privilege = LEGION_WRITE_DISCARD;
       LegionSpy::log_index_point(

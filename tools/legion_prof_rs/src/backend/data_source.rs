@@ -21,12 +21,12 @@ use crate::backend::common::{
     ChanEntryFieldsPretty, ChanEntryShort, DimOrderPretty, FSpaceShort, FieldsPretty, ISpacePretty,
     InstShort, MemGroup, ProcGroup, SizePretty, StatePostprocess,
 };
-use crate::conditional_assert;
+use crate::geometry::{Bounds, ISpaceID, Rect};
 use crate::state::{
-    BacktraceID, ChanEntry, ChanID, Color, Config, Container, ContainerEntry, Copy, CopyInstInfo,
-    DeviceKind, EventEntry, EventEntryKind, EventID, Fill, FillInstInfo, Inst, MemID, MemKind,
-    NodeID, OpID, ProcEntryKind, ProcID, ProcKind, ProfUID, ProvenanceID, State, TimeRange,
-    Timestamp,
+    BacktraceID, ChanEntry, ChanID, Color, Container, ContainerEntry, Copy, CopyInstInfo, DepPart,
+    DepPartInstInfo, DeviceKind, Dim, DimKind, EventEntry, EventEntryKind, EventID, Fill,
+    FillInstInfo, Inst, MemID, MemKind, NodeID, OpID, PrivilegeMode, ProcEntryKind, ProcID,
+    ProcKind, ProfUID, ProvenanceID, State, TimeRange, Timestamp,
 };
 
 impl Into<ts::Timestamp> for Timestamp {
@@ -83,7 +83,6 @@ struct ItemInfo {
 
 #[derive(Debug, Clone)]
 pub struct Fields {
-    chan_reqs: FieldID,
     expanded_for_visibility: FieldID,
     operation: FieldID,
     insts: FieldID,
@@ -113,6 +112,8 @@ pub struct Fields {
     scheduling_overhead: FieldID,
     message_latency: FieldID,
     effective_bandwidth: FieldID,
+    launch_domain: FieldID,
+    reduction_op: FieldID,
 }
 
 #[derive(Debug)]
@@ -137,7 +138,6 @@ impl StateDataSource {
         let mut field_schema = FieldSchema::new();
 
         let fields = Fields {
-            chan_reqs: field_schema.insert("Requirements".to_owned(), true),
             expanded_for_visibility: field_schema
                 .insert("(Expanded for Visibility)".to_owned(), false),
             operation: field_schema.insert("Operation".to_owned(), true),
@@ -168,6 +168,8 @@ impl StateDataSource {
             scheduling_overhead: field_schema.insert("Scheduling Overhead".to_owned(), false),
             message_latency: field_schema.insert("Message Latency".to_owned(), false),
             effective_bandwidth: field_schema.insert("Effective Bandwidth".to_owned(), false),
+            launch_domain: field_schema.insert("Launch Domain".to_owned(), false),
+            reduction_op: field_schema.insert("Reduction Operator".to_owned(), true),
         };
 
         let mut entry_map = BTreeMap::<EntryID, EntryKind>::new();
@@ -1198,17 +1200,190 @@ impl StateDataSource {
         Field::U64(op_id.0.get())
     }
 
-    fn generate_inst_link(&self, inst_uid: ProfUID, prefix: &str) -> Option<Field> {
-        let mem_id = self.state.insts.get(&inst_uid)?;
-        let mem = self.state.mems.get(mem_id)?;
-        let inst = mem.insts.get(&inst_uid)?;
+    fn generate_inst_link(
+        &self,
+        instance: &Option<&Inst>,
+        prefix: &str,
+        expr: Option<ISpaceID>,
+        privilege: PrivilegeMode,
+    ) -> Field {
+        let Some(inst) = instance else {
+            return Field::String(format!("{}<unknown instance>", prefix));
+        };
 
-        Some(Field::ItemLink(ItemLink {
+        let privilege_string = match privilege {
+            PrivilegeMode::NoAccess => "No-Access",
+            PrivilegeMode::ReadOnly => " Read",
+            PrivilegeMode::WriteOnly => " Write",
+            PrivilegeMode::ReadWrite => " Read-Write",
+            PrivilegeMode::Reduce(redop) => &format!(" Reduce<{}>", redop.0),
+        };
+
+        let access_string = if let Some(access) = expr {
+            // We can only be dense if we're SOA layout or there is only one field in the instance
+            let soa = inst.fields.len() == 1
+                || *inst.dim_order.last_key_value().unwrap().1 == DimKind::DimF;
+            let access_space = self.state.index_spaces.get(&access).unwrap();
+            let access_volume = access_space.volume();
+            if inst.piece_space.is_some() || inst.union_space.is_some() {
+                let mut affine_points = Vec::new();
+                let (pieces, pieces_volume) = if let Some(piece_id) = inst.piece_space {
+                    // Instance has a piece space so that means it has pieces
+                    let piece_space = self.state.index_spaces.get(&piece_id).unwrap();
+                    (&piece_space.points, piece_space.volume())
+                } else {
+                    // No piece space so assume it is affine
+                    let union_id = inst.union_space.unwrap();
+                    let union_space = self.state.index_spaces.get(&union_id).unwrap();
+                    // Bounding box for union space is the shape of the only piece
+                    match &union_space.bounds {
+                        Bounds::Rect(rect) => {
+                            affine_points.push(Bounds::Rect(rect.clone()));
+                            (&affine_points, rect.volume())
+                        }
+                        Bounds::Empty => (&affine_points, 0),
+                        _ => {
+                            unreachable!();
+                        }
+                    }
+                };
+                if access_volume > 0 && pieces_volume > 0 {
+                    // We want to evaluate two different kinds properties here
+                    // 1. Are we accessing the whole instance or just part of it
+                    //    We know that access space must be a subset of the pieces
+                    //    space or the code would have crashed so we can just test
+                    //    the volumes to know if it is a total or partial acccess
+                    assert!(access_volume <= pieces_volume);
+                    let partial = access_volume < pieces_volume;
+                    // 2. Is our access pattern: dense, strided, or sparse
+                    //    We define this second criteria as follows:
+                    //      Dense: all the data is contiguous in memory
+                    //      Strided: data is not continiguous but can be described
+                    //               affinely
+                    //      Sparse: requires multiple rectangles to describe points
+                    if partial {
+                        let percentage = 100.0 * (access_volume as f64) / (pieces_volume as f64);
+                        // Figure out how many pieces we touch for all
+                        // of the rectangles in the access space
+                        let mut touched_pieces = 0;
+                        let mut last_piece = None;
+                        for piece in pieces {
+                            match piece {
+                                Bounds::Point(point) => {
+                                    if access_space.contains_point(point) {
+                                        touched_pieces += 1;
+                                        last_piece = Some(Rect::new(point.clone(), point.clone()));
+                                    }
+                                }
+                                Bounds::Rect(rect) => {
+                                    if access_space.overlaps(rect) {
+                                        touched_pieces += 1;
+                                        last_piece = Some(rect.clone());
+                                    }
+                                }
+                                _ => {
+                                    unreachable!();
+                                }
+                            }
+                        }
+                        assert!(touched_pieces > 0);
+                        if touched_pieces == 1 && access_space.points.len() == 1 {
+                            // One rectangle covered by another but is a
+                            // a strict subset, check to see if the subset
+                            // is dense in memory or not
+                            if soa {
+                                let piece_rect = last_piece.unwrap();
+                                let access_rect = match access_space.points.first().unwrap() {
+                                    Bounds::Point(point) => Rect::new(point.clone(), point.clone()),
+                                    Bounds::Rect(rect) => rect.clone(),
+                                    _ => {
+                                        unreachable!();
+                                    }
+                                };
+                                assert!(piece_rect.dim() == access_rect.dim());
+                                let mut contiguous = true;
+                                // All but the last spatial dimension must fully cover the piece
+                                for idx in 0..(piece_rect.dim() - 1) {
+                                    let dim_idx = Dim(idx as u32);
+                                    let dim = *inst.dim_order.get(&dim_idx).unwrap() as usize;
+                                    assert!(
+                                        piece_rect.lo.values[dim] <= access_rect.lo.values[dim]
+                                    );
+                                    if piece_rect.lo.values[dim] < access_rect.lo.values[dim] {
+                                        contiguous = false;
+                                        break;
+                                    }
+                                    assert!(
+                                        access_rect.hi.values[dim] <= piece_rect.hi.values[dim]
+                                    );
+                                    if access_rect.hi.values[dim] < piece_rect.lo.values[dim] {
+                                        contiguous = false;
+                                        break;
+                                    }
+                                }
+                                if contiguous {
+                                    &format!(
+                                        " Partial ({:.2}%) Dense{}",
+                                        percentage, privilege_string
+                                    )
+                                } else {
+                                    &format!(
+                                        " Partial ({:.2}$) Strided{} (dimensions not contiguous)",
+                                        percentage, privilege_string
+                                    )
+                                }
+                            } else {
+                                // Not SOA so this is guaranteed to be partial strided
+                                &format!(
+                                    " Partial ({:.2}%) Strided{} (not SOA)",
+                                    percentage, privilege_string
+                                )
+                            }
+                        } else {
+                            &format!(
+                                " Partial ({:.2}%) Sparse{} with {} rects accessing {} piece{}",
+                                percentage,
+                                privilege_string,
+                                access_space.points.len(),
+                                touched_pieces,
+                                if touched_pieces > 1 { "s" } else { "" }
+                            )
+                        }
+                    } else {
+                        // If we're totally covering the instance then we are
+                        // either dense or sparse depending on how many pieces
+                        // there are in the instance
+                        if pieces.len() > 1 {
+                            &format!(
+                                " Total Sparse{} accessing {} pieces",
+                                privilege_string,
+                                pieces.len()
+                            )
+                        } else if soa {
+                            &format!(" Total Dense{}", privilege_string)
+                        } else {
+                            &format!(" Total Strided{} (not SOA)", privilege_string)
+                        }
+                    }
+                } else {
+                    // Empty instance case
+                    &format!(" Empty{}", privilege_string)
+                }
+            } else {
+                // No piece or union space means we don't know anything about this instance
+                privilege_string
+            }
+        } else {
+            // No access case
+            privilege_string
+        };
+
+        Field::ItemLink(ItemLink {
             item_uid: inst.base().prof_uid.into(),
-            title: format!("{}0x{:x}", prefix, inst.inst_id.unwrap().0),
+            title: format!("{}0x{:x}{}", prefix, inst.inst_id.unwrap().0, access_string),
             interval: inst.time_range().into(),
-            entry_id: self.mem_entries.get(mem_id).unwrap().clone(),
-        }))
+            entry_id: self.mem_entries.get(&inst.mem_id.unwrap()).unwrap().clone(),
+        })
     }
 
     fn generate_proc_link(&self, prof_uid: ProfUID) -> Field {
@@ -1793,23 +1968,37 @@ impl StateDataSource {
             }
             if let Some(op_id) = entry.op_id {
                 let op = self.state.find_op(op_id).unwrap();
-                let inst_set: BTreeSet<_> =
-                    op.operation_inst_infos.iter().map(|i| i.inst_uid).collect();
-
-                let insts: Vec<_> = inst_set
-                    .iter()
-                    .flat_map(|i| {
-                        let result = self.generate_inst_link(*i, "");
-                        conditional_assert!(
-                            result.is_some(),
-                            Config::all_logs(),
-                            "Cannot find instance 0x{:x}",
-                            i.0
-                        );
-                        result
-                    })
-                    .collect();
-                fields.push(ItemField(self.fields.insts, Field::Vec(insts), None));
+                let mut insts = Vec::new();
+                for (req, uses) in &op.operation_inst_infos {
+                    if let Some(index) = req {
+                        insts.push(Field::String(format!("Requirement {}", index)));
+                    } else {
+                        insts.push(Field::String("No Requirement (Futures)".to_owned()));
+                    }
+                    // for each instance-expr-privilege pair find all the fields
+                    // this is effectively a group-by but rust's implementation
+                    // is too stupid to do this on an unsorted vector
+                    let mut inst_fields = BTreeMap::new();
+                    for info in uses {
+                        let key = (info.inst_uid, info.index_expr, info.privilege);
+                        inst_fields
+                            .entry(key)
+                            .or_insert_with(|| Vec::new())
+                            .push(info.field);
+                    }
+                    for (key, mut fields) in inst_fields {
+                        let inst = self.state.find_inst(key.0);
+                        fields.sort();
+                        insts.push(self.generate_inst_link(&inst, "", key.1, key.2));
+                        insts.push(Field::String(format!(
+                            "Fields: {}",
+                            ChanEntryFieldsPretty(inst, &fields, &self.state)
+                        )));
+                    }
+                }
+                if !insts.is_empty() {
+                    fields.push(ItemField(self.fields.insts, Field::Vec(insts), None));
+                }
             }
             if let Some(provenance) = provenance {
                 fields.push(ItemField(
@@ -2080,7 +2269,7 @@ impl StateDataSource {
     }
 
     fn generate_inst_regions(&self, inst: &Inst, result: &mut Vec<ItemField>) {
-        for (ispace_id, fspace_id) in inst.ispace_ids.iter().zip(inst.fspace_ids.iter()) {
+        for ispace_id in &inst.ispace_ids {
             let ispace = format!("{}", ISpacePretty(*ispace_id, &self.state),);
             result.push(ItemField(
                 self.fields.inst_ispace,
@@ -2088,7 +2277,11 @@ impl StateDataSource {
                 None,
             ));
 
-            let fspace = self.state.field_spaces.get(fspace_id).unwrap();
+            let fspace = self
+                .state
+                .field_spaces
+                .get(&inst.fspace_id.unwrap())
+                .unwrap();
             let fspace_name = format!("{}", FSpaceShort(fspace));
             result.push(ItemField(
                 self.fields.inst_fspace,
@@ -2106,12 +2299,94 @@ impl StateDataSource {
     }
 
     fn generate_inst_layout(&self, inst: &Inst, result: &mut Vec<ItemField>) {
-        let layout = format!("{}", DimOrderPretty(inst, false));
-        result.push(ItemField(
-            self.fields.inst_layout,
-            Field::String(layout),
-            None,
-        ));
+        if let Some(union_space_id) = inst.union_space {
+            let union_space = self.state.index_spaces.get(&union_space_id).unwrap();
+            if union_space.is_empty() {
+                result.push(ItemField(
+                    self.fields.inst_layout,
+                    Field::String(format!("Empty Instance")),
+                    None,
+                ));
+            } else {
+                // Compute the efficiency of the layout
+                let (efficiency, pieces) = if let Some(piece_space_id) = inst.piece_space {
+                    let piece_space = self.state.index_spaces.get(&piece_space_id).unwrap();
+                    let union_points = union_space.volume();
+                    let piece_points = piece_space.volume();
+                    assert!(union_points <= piece_points);
+                    (
+                        100.0 * (union_points as f64) / (piece_points as f64),
+                        piece_space.points.len(),
+                    )
+                } else {
+                    // Just compute the sparsity percentage on the union space
+                    // since we know it is a convex hull of bounding box
+                    (union_space.sparsity_percentage(), 1)
+                };
+                let color = if efficiency < 10.0 {
+                    Some(Color32::RED) // < 10% efficient is bad
+                } else if efficiency < 50.0 {
+                    Some(Color32::GOLD) // < 50% efficient should be checked 
+                } else {
+                    None
+                };
+                if pieces > 1 {
+                    result.push(ItemField(
+                        self.fields.inst_layout,
+                        Field::String(format!(
+                            "Compact Sparse with {} pieces ({:.2}% efficient) {}",
+                            pieces,
+                            efficiency,
+                            DimOrderPretty(inst, false)
+                        )),
+                        color,
+                    ));
+                } else {
+                    result.push(ItemField(
+                        self.fields.inst_layout,
+                        Field::String(format!(
+                            "Affine Dense ({:.2}% efficient) {} ",
+                            efficiency,
+                            DimOrderPretty(inst, false)
+                        )),
+                        color,
+                    ));
+                }
+            }
+        } else {
+            if let Some(piece_space_id) = inst.piece_space {
+                // Only have a piece space, no way to compute efficiency
+                let piece_space = self.state.index_spaces.get(&piece_space_id).unwrap();
+                assert!(!piece_space.is_empty());
+                let pieces = piece_space.points.len();
+                assert!(pieces >= 1);
+                if pieces > 1 {
+                    result.push(ItemField(
+                        self.fields.inst_layout,
+                        Field::String(format!(
+                            "Compact Sparse with {} pieces {}",
+                            pieces,
+                            DimOrderPretty(inst, false)
+                        )),
+                        None,
+                    ));
+                } else {
+                    result.push(ItemField(
+                        self.fields.inst_layout,
+                        Field::String(format!("Affine Dense {}", DimOrderPretty(inst, false))),
+                        None,
+                    ));
+                }
+            } else {
+                // No spaces so just report the basic layout
+                let layout = format!("{}", DimOrderPretty(inst, false));
+                result.push(ItemField(
+                    self.fields.inst_layout,
+                    Field::String(layout),
+                    None,
+                ));
+            }
+        }
     }
 
     fn generate_inst_size(&self, inst: &Inst, result: &mut Vec<ItemField>) {
@@ -2357,13 +2632,20 @@ impl StateDataSource {
         })
     }
 
-    fn generate_copy_reqs(&self, copy: &Copy, result_reqs: &mut Vec<Field>) {
+    fn generate_copy_instances(
+        &self,
+        copy: &Copy,
+        result_reqs: &mut Vec<Field>,
+    ) -> Option<Color32> {
         let groups = copy.copy_inst_infos.linear_group_by(|a, b| {
             a.src_inst_uid == b.src_inst_uid
                 && a.dst_inst_uid == b.dst_inst_uid
+                && a.src_expr == b.src_expr
+                && a.dst_expr == b.dst_expr
                 && a.num_hops == b.num_hops
         });
         let mut i = 0;
+        let mut color = None;
         for group in groups {
             let req_nums = if group.len() == 1 {
                 format!("Requirement {}", i)
@@ -2375,6 +2657,8 @@ impl StateDataSource {
             let CopyInstInfo {
                 src_inst_uid,
                 dst_inst_uid,
+                src_expr,
+                dst_expr,
                 num_hops,
                 ..
             } = group[0];
@@ -2404,40 +2688,99 @@ impl StateDataSource {
 
             match (src_inst_uid, dst_inst_uid) {
                 (None, None) => unreachable!(),
-                (None, Some(dst_uid)) => {
+                (None, Some(_)) => {
                     let prefix = "Scatter: destination indirect instance ";
-                    if let Some(dst) = self.generate_inst_link(dst_uid, prefix) {
-                        result_reqs.push(dst);
-                    } else {
-                        result_reqs.push(Field::String(format!("{}<unknown instance>", prefix)));
-                    }
+                    result_reqs.push(self.generate_inst_link(
+                        &dst_inst,
+                        prefix,
+                        dst_expr,
+                        PrivilegeMode::ReadOnly,
+                    ));
                     result_reqs.push(Field::String(dst_fields));
                 }
-                (Some(src_uid), None) => {
+                (Some(_), None) => {
                     let prefix = "Gather: source indirect instance ";
-                    if let Some(src) = self.generate_inst_link(src_uid, prefix) {
-                        result_reqs.push(src);
-                    } else {
-                        result_reqs.push(Field::String(format!("{}<unknown instance>", prefix)));
-                    }
+                    result_reqs.push(self.generate_inst_link(
+                        &src_inst,
+                        prefix,
+                        src_expr,
+                        PrivilegeMode::ReadOnly,
+                    ));
                     result_reqs.push(Field::String(src_fields));
                 }
-                (Some(src_uid), Some(dst_uid)) => {
+                (Some(_), Some(_)) => {
                     let prefix = "Source: ";
-                    if let Some(src) = self.generate_inst_link(src_uid, prefix) {
-                        result_reqs.push(src);
-                    } else {
-                        result_reqs.push(Field::String(format!("{}<unknown instance>", prefix)));
-                    }
+                    result_reqs.push(self.generate_inst_link(
+                        &src_inst,
+                        prefix,
+                        src_expr,
+                        PrivilegeMode::ReadOnly,
+                    ));
                     result_reqs.push(Field::String(src_fields));
 
                     let prefix = "Destination: ";
-                    if let Some(dst) = self.generate_inst_link(dst_uid, prefix) {
-                        result_reqs.push(dst);
+                    let dst_privilege = if let Some(redop) = copy.redop {
+                        PrivilegeMode::Reduce(redop)
                     } else {
-                        result_reqs.push(Field::String(format!("{}<unknown instance>", prefix)));
-                    }
+                        PrivilegeMode::WriteOnly
+                    };
+                    result_reqs.push(self.generate_inst_link(
+                        &dst_inst,
+                        prefix,
+                        dst_expr,
+                        dst_privilege,
+                    ));
                     result_reqs.push(Field::String(dst_fields));
+                    match (src_inst, dst_inst) {
+                        (Some(src_inst), Some(dst_inst)) => {
+                            // If we know about both the instances, do some analysis
+                            // to determine if we're transposing dimensions or fields
+                            // Should have the same number of dimensions
+                            assert!(src_inst.dim_order.len() == dst_inst.dim_order.len());
+                            let mut transpose_fields = None;
+                            let mut transpose_dimensions = None;
+                            for ((k1, v1), (k2, v2)) in
+                                src_inst.dim_order.iter().zip(dst_inst.dim_order.iter())
+                            {
+                                // Key should always be the same
+                                assert!(*k1 == *k2);
+                                // Check to see if the dimensions are the same
+                                if *v1 == *v2 {
+                                    continue;
+                                }
+                                if *v1 == DimKind::DimF || *v2 == DimKind::DimF {
+                                    // Transposing fields with dimensions
+                                    transpose_fields = Some(*v2);
+                                } else if *v2 == DimKind::DimF {
+                                    transpose_fields = Some(*v1);
+                                } else {
+                                    transpose_dimensions = Some((*v1, *v2));
+                                }
+                            }
+                            match (transpose_fields, transpose_dimensions) {
+                                (None, None) => {}
+                                (Some(df), None) => {
+                                    color = Some(Color32::GOLD);
+                                    result_reqs.push(Field::String(format!(
+                                        "Transposing fields with spatial dimension {}!",
+                                        df
+                                    )));
+                                }
+                                (None, Some((d1, d2))) => {
+                                    color = Some(Color32::GOLD);
+                                    result_reqs.push(Field::String(format!(
+                                        "Transposing spatial dimensions {} and {}!",
+                                        d1, d2
+                                    )))
+                                }
+                                (Some(df), Some((d1, d2))) => {
+                                    color = Some(Color32::GOLD);
+                                    result_reqs.push(Field::String(format!("Transposing fields with spatial dimension {} as well as transposing spatial dimensions {} and {}!", df, d1, d2)));
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
                 }
             }
 
@@ -2445,9 +2788,14 @@ impl StateDataSource {
 
             i += group.len();
         }
+        color
     }
 
-    fn generate_fill_reqs(&self, fill: &Fill, result_reqs: &mut Vec<Field>) {
+    fn generate_fill_instances(
+        &self,
+        fill: &Fill,
+        result_reqs: &mut Vec<Field>,
+    ) -> Option<Color32> {
         let groups = fill
             .fill_inst_infos
             .linear_group_by(|a, b| a.dst_inst_uid == b.dst_inst_uid);
@@ -2471,33 +2819,77 @@ impl StateDataSource {
             );
 
             let prefix = "Destination: ";
-            if let Some(dst) = self.generate_inst_link(dst_inst_uid, prefix) {
-                result_reqs.push(dst);
-            } else {
-                result_reqs.push(Field::String(format!("{}<unknown instance>", prefix)));
-            }
+            result_reqs.push(self.generate_inst_link(
+                &dst_inst,
+                prefix,
+                fill.fill_expr,
+                PrivilegeMode::WriteOnly,
+            ));
             result_reqs.push(Field::String(dst_fields));
 
             i += group.len();
         }
+        None
     }
 
-    fn generate_chan_reqs(&self, entry: &ChanEntry, result: &mut Vec<ItemField>) {
-        let mut result_reqs = Vec::new();
-        match entry {
-            ChanEntry::Copy(copy) => {
-                self.generate_copy_reqs(copy, &mut result_reqs);
-            }
-            ChanEntry::Fill(fill) => {
-                self.generate_fill_reqs(fill, &mut result_reqs);
-            }
-            ChanEntry::DepPart(_) => {}
+    fn generate_deppart_instances(
+        &self,
+        deppart: &DepPart,
+        result_reqs: &mut Vec<Field>,
+    ) -> Option<Color32> {
+        let groups = deppart
+            .deppart_inst_infos
+            .linear_group_by(|a, b| a.src_inst_uid == b.src_inst_uid && a.src_expr == b.src_expr);
+        let mut i = 0;
+        for group in groups {
+            let req_nums = if group.len() == 1 {
+                format!("Requirement {}", i)
+            } else {
+                format!("Requirements {}-{}", i, i + group.len() - 1)
+            };
+            result_reqs.push(Field::String(req_nums));
+
+            let DepPartInstInfo {
+                src_inst_uid,
+                src_expr,
+                ..
+            } = group[0];
+
+            let src_inst = self.state.find_inst(src_inst_uid);
+
+            let src_fids = group.iter().map(|x| x.fid).collect();
+            let src_fields = format!(
+                "Fields: {}",
+                ChanEntryFieldsPretty(src_inst, &src_fids, &self.state)
+            );
+
+            let prefix = "Source: ";
+            result_reqs.push(self.generate_inst_link(
+                &src_inst,
+                prefix,
+                src_expr,
+                PrivilegeMode::ReadOnly,
+            ));
+            result_reqs.push(Field::String(src_fields));
+
+            i += group.len();
         }
-        result.push(ItemField(
-            self.fields.chan_reqs,
-            Field::Vec(result_reqs),
-            None,
-        ));
+        None
+    }
+
+    fn generate_chan_instances(&self, entry: &ChanEntry, result: &mut Vec<ItemField>) {
+        let mut result_reqs = Vec::new();
+        let color = match entry {
+            ChanEntry::Copy(copy) => self.generate_copy_instances(copy, &mut result_reqs),
+            ChanEntry::Fill(fill) => self.generate_fill_instances(fill, &mut result_reqs),
+            ChanEntry::DepPart(deppart) => {
+                if deppart.deppart_inst_infos.is_empty() {
+                    return;
+                }
+                self.generate_deppart_instances(deppart, &mut result_reqs)
+            }
+        };
+        result.push(ItemField(self.fields.insts, Field::Vec(result_reqs), color));
     }
 
     fn generate_chan_size_and_effective_bandwidth(
@@ -2566,7 +2958,42 @@ impl StateDataSource {
                 Field::Interval(point_interval),
                 None,
             ));
-            self.generate_chan_reqs(entry, &mut fields);
+            // If we have a copy/fill domain then report if it is dense or sparse
+            // and if it is sparse then also report the sparsity percentage
+            if let Some(domain) = entry.launch_domain() {
+                let space = self.state.index_spaces.get(&domain).unwrap();
+                if space.is_empty() {
+                    fields.push(ItemField(
+                        self.fields.launch_domain,
+                        Field::String(format!("Empty")),
+                        None,
+                    ));
+                } else if space.is_sparse() {
+                    fields.push(ItemField(
+                        self.fields.launch_domain,
+                        Field::String(format!(
+                            "Sparse ({:.2}% with {} rects)",
+                            space.sparsity_percentage(),
+                            space.points.len()
+                        )),
+                        None,
+                    ));
+                } else {
+                    fields.push(ItemField(
+                        self.fields.launch_domain,
+                        Field::String(format!("Dense")),
+                        None,
+                    ));
+                }
+            }
+            if let Some(reduction) = entry.reduction_op() {
+                fields.push(ItemField(
+                    self.fields.reduction_op,
+                    Field::String(format!("{}", reduction.0)),
+                    None,
+                ));
+            }
+            self.generate_chan_instances(entry, &mut fields);
             self.generate_chan_size_and_effective_bandwidth(entry, &mut fields);
             if let Some(initiation_op) = entry.initiation() {
                 // FIXME: You might think that initiation_op is None rather than

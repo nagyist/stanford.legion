@@ -45,7 +45,7 @@ namespace Legion {
           const RegionRequirement& req, RtEvent mapped_event,
           ApEvent ready_event, ApUserEvent term_event, bool mapped,
           TaskContext* ctx, MapperID mid, MappingTagID tag, bool leaf,
-          bool virt, bool collective, uint64_t blocking);
+          bool virt, bool collective, uint64_t blocking, unsigned index);
       PhysicalRegionImpl(const PhysicalRegionImpl& rhs) = delete;
       ~PhysicalRegionImpl(void);
     public:
@@ -62,7 +62,8 @@ namespace Legion {
       LogicalRegion get_logical_region(void) const;
       PrivilegeMode get_privilege(void) const;
     public:
-      void unmap_region(void);
+      void unmap_region(bool escaped);
+      void report_usage(bool escaped);
       ApEvent remap_region(ApEvent new_ready_event, uint64_t blocking);
       const RegionRequirement& get_requirement(void) const;
       void add_padded_field(FieldID fid);
@@ -110,6 +111,7 @@ namespace Legion {
       TaskContext* const context;
       const MapperID map_id;
       const MappingTagID tag;
+      const unsigned requirement_index;  // region requirement index
       const bool leaf_region;
       const bool virtual_mapped;
       // Whether this physical region represents a collectively
@@ -139,6 +141,9 @@ namespace Legion {
       std::vector<FieldID> padded_fields;
       // The blocking index for when this physical region was created
       uint64_t blocking_index;
+      // For non-leaf tasks we need to time how long a task spends using
+      // this physical region so we can record it properly for profiling
+      std::optional<long long> start_time;
       // "appliciation side" state
       // whether it is currently mapped
       bool mapped;

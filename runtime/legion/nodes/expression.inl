@@ -369,6 +369,41 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
+    void IndexSpaceExpression::log_profiler_points(
+        DistributedID did, const DomainT<DIM, T>& tight_space) const
+    //--------------------------------------------------------------------------
+    {
+      if (!tight_space.empty())
+      {
+        bool is_dense = tight_space.dense();
+        size_t dense_volume, sparse_volume;
+        if (is_dense)
+          dense_volume = sparse_volume = tight_space.volume();
+        else
+        {
+          dense_volume = tight_space.bounds.volume();
+          sparse_volume = tight_space.volume();
+        }
+        implicit_profiler->register_index_space_size(
+            did, dense_volume, sparse_volume, !is_dense);
+        // Iterate over the rectangles and print them out
+        for (Realm::IndexSpaceIterator<DIM, T> itr(tight_space); itr.valid;
+             itr.step())
+        {
+          if (itr.rect.volume() == 1)
+            implicit_profiler->record_index_space_point(
+                did, Point<DIM, T>(itr.rect.lo));
+          else
+            implicit_profiler->record_index_space_rect(
+                did, Rect<DIM, T>(itr.rect));
+        }
+      }
+      else
+        implicit_profiler->register_empty_index_space(did);
+    }
+
+    //--------------------------------------------------------------------------
+    template<int DIM, typename T>
     ApEvent IndexSpaceExpression::issue_fill_internal(
         Operation* op, const Realm::IndexSpace<DIM, T>& space,
         const PhysicalTraceInfo& trace_info,
@@ -408,8 +443,9 @@ namespace Legion {
         fill_pre = precondition;
       if (runtime->profiler != nullptr)
       {
-        SmallNameClosure<1>* closure = new SmallNameClosure<1>();
-        closure->record_instance_name(dst_fields.front().inst, unique_event);
+        SmallNameClosure<1>* closure = new SmallNameClosure<1>(this);
+        closure->record_instance_name(
+            dst_fields.front().inst, unique_event, get_distributed_id());
         runtime->profiler->add_fill_request(
             requests, closure, op, fill_pre, collective);
       }
@@ -490,9 +526,11 @@ namespace Legion {
             reservation, true /*exclusive*/, copy_pre);
       if (runtime->profiler != nullptr)
       {
-        SmallNameClosure<2>* closure = new SmallNameClosure<2>();
-        closure->record_instance_name(src_fields.front().inst, src_unique);
-        closure->record_instance_name(dst_fields.front().inst, dst_unique);
+        SmallNameClosure<2>* closure =
+            new SmallNameClosure<2>(this, dst_fields.back().redop_id);
+        const DistributedID did = get_distributed_id();
+        closure->record_instance_name(src_fields.front().inst, src_unique, did);
+        closure->record_instance_name(dst_fields.front().inst, dst_unique, did);
         runtime->profiler->add_copy_request(
             requests, closure, op, copy_pre, 1 /*count*/, collective);
       }
@@ -1649,6 +1687,19 @@ namespace Legion {
     {
       DomainT<DIM, T> domain = get_tight_index_space();
       return get_canonical_hash_internal(domain);
+    }
+
+    //--------------------------------------------------------------------------
+    template<int DIM, typename T>
+    DistributedID IndexSpaceOperationT<DIM, T>::record_profiler_expression(void)
+    //--------------------------------------------------------------------------
+    {
+      if (!profiler_logged.exchange(true))
+      {
+        DomainT<DIM, T> tight_space = get_tight_index_space();
+        log_profiler_points(did, tight_space);
+      }
+      return did;
     }
 
     //--------------------------------------------------------------------------

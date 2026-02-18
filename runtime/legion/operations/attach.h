@@ -41,7 +41,7 @@ namespace Legion {
     public:
       PhysicalRegion initialize(
           InnerContext* ctx, const AttachLauncher& launcher,
-          Provenance* provenance);
+          Provenance* provenance, unsigned requirement_index);
       virtual const RegionRequirement& get_requirement(
           unsigned idx = 0) const override
       {
@@ -119,7 +119,7 @@ namespace Legion {
           InnerContext* ctx, RegionTreeNode* upper_bound,
           IndexSpaceNode* launch_bounds, const IndexAttachLauncher& launcher,
           const std::vector<unsigned>& indexes, Provenance* provenance,
-          const bool replicated);
+          const bool replicated, unsigned requirement_offset);
       virtual const RegionRequirement& get_requirement(
           unsigned idx = 0) const override
       {
@@ -189,7 +189,7 @@ namespace Legion {
       PhysicalRegionImpl* initialize(
           IndexAttachOp* owner, InnerContext* ctx,
           const IndexAttachLauncher& launcher, const DomainPoint& point,
-          unsigned index);
+          unsigned index, unsigned requirement_offset);
     public:
       virtual void trigger_complete(ApEvent effect) override;
       virtual void trigger_commit(void) override;

@@ -3143,7 +3143,7 @@ namespace Legion {
           warning.raise();
         }
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the copy operation
       add_to_dependence_queue(part_op);
@@ -3262,7 +3262,7 @@ namespace Legion {
           warning.raise();
         }
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the copy operation
       add_to_dependence_queue(part_op);
@@ -3320,7 +3320,7 @@ namespace Legion {
           warning.raise();
         }
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the copy operation
       add_to_dependence_queue(part_op);
@@ -3378,7 +3378,7 @@ namespace Legion {
           warning.raise();
         }
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the copy operation
       add_to_dependence_queue(part_op);
@@ -3454,7 +3454,7 @@ namespace Legion {
           warning.raise();
         }
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the copy operation
       add_to_dependence_queue(part_op);
@@ -3513,7 +3513,7 @@ namespace Legion {
           warning.raise();
         }
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the copy operation
       add_to_dependence_queue(part_op);
@@ -5334,7 +5334,8 @@ namespace Legion {
           req, RtEvent::NO_RT_EVENT, ApEvent::NO_AP_EVENT,
           mapped ? unmap_event : ApUserEvent::NO_AP_USER_EVENT, mapped, this,
           mid, tag, false /*leaf region*/, is_virtual_mapped,
-          false /*never collective*/, NO_BLOCKING_INDEX);
+          false /*never collective*/, NO_BLOCKING_INDEX,
+          physical_region_count++);
       physical_regions.emplace_back(PhysicalRegion(impl));
       if (!is_virtual_mapped)
       {
@@ -5630,7 +5631,8 @@ namespace Legion {
       if (IS_NO_ACCESS(launcher.requirement))
         return PhysicalRegion();
       MapOp* map_op = runtime->get_operation<MapOp>();
-      PhysicalRegion result = map_op->initialize(this, launcher, provenance);
+      PhysicalRegion result = map_op->initialize(
+          this, launcher, provenance, physical_region_count++);
       if (current_trace != nullptr)
       {
         Error error(LEGION_INTERFACE_EXCEPTION);
@@ -5720,7 +5722,7 @@ namespace Legion {
     {
       if (!region.is_mapped())
         return;
-      region.impl->unmap_region();
+      region.impl->unmap_region(false /*escaped*/);
       unregister_inline_mapped_region(region);
     }
 
@@ -5731,7 +5733,7 @@ namespace Legion {
       for (const PhysicalRegion& region : physical_regions)
       {
         if (region.is_mapped())
-          region.impl->unmap_region();
+          region.impl->unmap_region(!external);
       }
       // Also unmap any of our inline mapped physical regions
       AutoLock i_lock(inline_lock);
@@ -5740,7 +5742,7 @@ namespace Legion {
            it != inline_regions.end(); it++)
       {
         if (it->is_mapped())
-          it->impl->unmap_region();
+          it->impl->unmap_region(!external);
       }
       if (!external)
         inline_regions.clear();
@@ -5778,7 +5780,7 @@ namespace Legion {
         }
         // Unmap any regions which are conflicting
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the copy operation
       add_to_dependence_queue(fill_op, launcher.static_dependences);
@@ -5832,7 +5834,7 @@ namespace Legion {
         }
         // Unmap any regions which are conflicting
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the copy operation
       add_to_dependence_queue(fill_op, launcher.static_dependences);
@@ -5874,7 +5876,7 @@ namespace Legion {
           }
           // Unmap any regions which are conflicting
           for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-            unmapped_regions[idx].impl->unmap_region();
+            unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
         }
       }
       add_to_dependence_queue(discard_op, launcher.static_dependences);
@@ -5905,7 +5907,7 @@ namespace Legion {
         }
         // Unmap any regions which are conflicting
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the copy operation
       add_to_dependence_queue(copy_op, launcher.static_dependences);
@@ -5951,7 +5953,7 @@ namespace Legion {
         }
         // Unmap any regions which are conflicting
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the copy operation
       add_to_dependence_queue(copy_op, launcher.static_dependences);
@@ -5983,7 +5985,7 @@ namespace Legion {
           warning.raise();
         }
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the acquire operation
       add_to_dependence_queue(acquire_op, launcher.static_dependences);
@@ -6015,7 +6017,7 @@ namespace Legion {
           warning.raise();
         }
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Issue the release operation
       add_to_dependence_queue(release_op, launcher.static_dependences);
@@ -6030,7 +6032,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AttachOp* attach_op = runtime->get_operation<AttachOp>();
-      PhysicalRegion result = attach_op->initialize(this, launcher, provenance);
+      PhysicalRegion result = attach_op->initialize(
+          this, launcher, provenance, physical_region_count++);
       bool parent_conflict = false, inline_conflict = false;
       int index =
           has_conflicting_regions(attach_op, parent_conflict, inline_conflict);
@@ -6084,7 +6087,8 @@ namespace Legion {
       IndexAttachOp* attach_op = runtime->get_operation<IndexAttachOp>();
       ExternalResources result = attach_op->initialize(
           this, node, launch_space, launcher, indexes, provenance,
-          false /*replicated*/);
+          false /*replicated*/, physical_region_count);
+      physical_region_count += indexes.size();
       const RegionRequirement& req = attach_op->get_requirement();
       bool parent_conflict = false, inline_conflict = false;
       int index =
@@ -6394,7 +6398,7 @@ namespace Legion {
       // Unmap the region here so that it is safe for re-use
       if (region.impl->is_mapped())
       {
-        region.impl->unmap_region();
+        region.impl->unmap_region(false /*escaped*/);
         // Remove this region from the list of inline regions if it is mapped
         unregister_inline_mapped_region(region);
       }
@@ -6480,7 +6484,7 @@ namespace Legion {
           warning.raise();
         }
         for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-          unmapped_regions[idx].impl->unmap_region();
+          unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
       }
       // Now we can issue the must epoch
       add_to_dependence_queue(epoch_op);
@@ -10789,7 +10793,7 @@ namespace Legion {
             }
           }
           for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-            unmapped_regions[idx].impl->unmap_region();
+            unmapped_regions[idx].impl->unmap_region(false /*escaped*/);
         }
         // Issue the task call
         add_to_dependence_queue(task, dependences);

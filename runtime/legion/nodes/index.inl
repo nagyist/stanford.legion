@@ -609,10 +609,23 @@ namespace Legion {
         if (owner_space == runtime->address_space)
         {
           this->log_index_space_points(tight_space);
-          if (runtime->profiler != nullptr)
-            this->log_profiler_index_space_points(tight_space);
+          if ((runtime->profiler != nullptr) && !profiler_logged.exchange(true))
+            this->log_profiler_points(did, tight_space);
         }
       }
+    }
+
+    //--------------------------------------------------------------------------
+    template<int DIM, typename T>
+    DistributedID IndexSpaceNodeT<DIM, T>::record_profiler_expression(void)
+    //--------------------------------------------------------------------------
+    {
+      if (!profiler_logged.exchange(true))
+      {
+        DomainT<DIM, T> tight_space = get_tight_index_space();
+        log_profiler_points(did, tight_space);
+      }
+      return did;
     }
 
     //--------------------------------------------------------------------------
@@ -710,41 +723,6 @@ namespace Legion {
       }
       else
         LegionSpy::log_empty_index_space(handle.get_id());
-    }
-
-    //--------------------------------------------------------------------------
-    template<int DIM, typename T>
-    void IndexSpaceNodeT<DIM, T>::log_profiler_index_space_points(
-        const Realm::IndexSpace<DIM, T>& tight_space) const
-    //--------------------------------------------------------------------------
-    {
-      if (!tight_space.empty())
-      {
-        bool is_dense = tight_space.dense();
-        size_t dense_volume, sparse_volume;
-        if (is_dense)
-          dense_volume = sparse_volume = tight_space.volume();
-        else
-        {
-          dense_volume = tight_space.bounds.volume();
-          sparse_volume = tight_space.volume();
-        }
-        implicit_profiler->register_index_space_size(
-            handle.get_id(), dense_volume, sparse_volume, !is_dense);
-        // Iterate over the rectangles and print them out
-        for (Realm::IndexSpaceIterator<DIM, T> itr(tight_space); itr.valid;
-             itr.step())
-        {
-          if (itr.rect.volume() == 1)
-            implicit_profiler->record_index_space_point(
-                handle.get_id(), Point<DIM, T>(itr.rect.lo));
-          else
-            implicit_profiler->record_index_space_rect(
-                handle.get_id(), Rect<DIM, T>(itr.rect));
-        }
-      }
-      else
-        implicit_profiler->register_empty_index_space(handle.get_id());
     }
 
     //--------------------------------------------------------------------------
@@ -2052,6 +2030,9 @@ namespace Legion {
           Realm::IndexSpace<DIM, T>, Realm::Point<COLOR_DIM, COLOR_T> >
           RealmDescriptor;
       std::vector<RealmDescriptor> descriptors(instances.size());
+      LargeNameClosure* closure = nullptr;
+      if (runtime->profiler != nullptr)
+        closure = new LargeNameClosure(this, fid, instances.size());
       for (unsigned idx = 0; idx < instances.size(); idx++)
       {
         const FieldDataDescriptor& src = instances[idx];
@@ -2059,6 +2040,8 @@ namespace Legion {
         dst.index_space = src.domain;
         dst.inst = src.inst;
         dst.field_offset = fid;
+        if (closure != nullptr)
+          closure->record_instance_name(src.inst, src.unique, src.space);
       }
       // Perform the operation
       ApUserEvent to_trigger;
@@ -2076,7 +2059,7 @@ namespace Legion {
       Realm::ProfilingRequestSet requests;
       if (runtime->profiler != nullptr)
         runtime->profiler->add_partition_request(
-            requests, op, DEP_PART_BY_FIELD, precondition);
+            requests, op, DEP_PART_BY_FIELD, precondition, closure);
       std::vector<Realm::IndexSpace<DIM, T> > subspaces;
       ApEvent result(local_space.create_subspaces_by_field(
           descriptors, colors, subspaces, requests, precondition));
@@ -2234,6 +2217,9 @@ namespace Legion {
         key.color = partition->color_space->delinearize_color_to_point(*itr);
         Realm::IndexSpace<DIM2, T2> source =
             Realm::IndexSpace<DIM2, T2>::make_empty();
+        LargeNameClosure* closure = nullptr;
+        if (runtime->profiler != nullptr)
+          closure = new LargeNameClosure(this, fid);
         for (std::vector<FieldDataDescriptor>::const_iterator it =
                  std::lower_bound(instances.begin(), instances.end(), key);
              it != std::upper_bound(instances.begin(), instances.end(), key);
@@ -2245,6 +2231,8 @@ namespace Legion {
           source = dst.index_space;
           dst.inst = it->inst;
           dst.field_offset = fid;
+          if (closure != nullptr)
+            closure->record_instance_name(it->inst, it->unique, it->space);
         }
         // We should have exactly one of these here for each image
         legion_assert(descriptors.size() == 1);
@@ -2252,7 +2240,7 @@ namespace Legion {
         Realm::ProfilingRequestSet requests;
         if (runtime->profiler != nullptr)
           runtime->profiler->add_partition_request(
-              requests, op, DEP_PART_BY_IMAGE, precondition);
+              requests, op, DEP_PART_BY_IMAGE, precondition, closure);
         Realm::IndexSpace<DIM1, T1> subspace;
         ApEvent result(local_space.create_subspace_by_image(
             descriptors, source, subspace, requests, precondition));
@@ -2347,6 +2335,9 @@ namespace Legion {
         key.color = partition->color_space->delinearize_color_to_point(*itr);
         Realm::IndexSpace<DIM2, T2> source =
             Realm::IndexSpace<DIM2, T2>::make_empty();
+        LargeNameClosure* closure = nullptr;
+        if (runtime->profiler != nullptr)
+          closure = new LargeNameClosure(this, fid);
         for (std::vector<FieldDataDescriptor>::const_iterator it =
                  std::lower_bound(instances.begin(), instances.end(), key);
              it != std::upper_bound(instances.begin(), instances.end(), key);
@@ -2358,6 +2349,8 @@ namespace Legion {
           source = dst.index_space;
           dst.inst = it->inst;
           dst.field_offset = fid;
+          if (closure != nullptr)
+            closure->record_instance_name(it->inst, it->unique, it->space);
         }
         // We should have exactly one of these here for each image
         legion_assert(descriptors.size() == 1);
@@ -2511,6 +2504,9 @@ namespace Legion {
           Realm::IndexSpace<DIM1, T1>, Realm::Point<DIM2, T2> >
           RealmDescriptor;
       std::vector<RealmDescriptor> descriptors(instances.size());
+      LargeNameClosure* closure = nullptr;
+      if (runtime->profiler != nullptr)
+        closure = new LargeNameClosure(this, fid, instances.size());
       for (unsigned idx = 0; idx < instances.size(); idx++)
       {
         const FieldDataDescriptor& src = instances[idx];
@@ -2518,6 +2514,8 @@ namespace Legion {
         dst.index_space = src.domain;
         dst.inst = src.inst;
         dst.field_offset = fid;
+        if (closure != nullptr)
+          closure->record_instance_name(src.inst, src.unique, src.space);
       }
       // Perform the operation
       DomainT<DIM1, T1> local_space;
@@ -2534,7 +2532,7 @@ namespace Legion {
       Realm::ProfilingRequestSet requests;
       if (runtime->profiler != nullptr)
         runtime->profiler->add_partition_request(
-            requests, op, DEP_PART_BY_PREIMAGE, precondition);
+            requests, op, DEP_PART_BY_PREIMAGE, precondition, closure);
       ApEvent result(local_space.create_subspaces_by_preimage(
           descriptors, targets, subspaces, requests, precondition));
       if ((spy_logging_level > LIGHT_SPY_LOGGING) &&
@@ -2687,6 +2685,9 @@ namespace Legion {
           Realm::IndexSpace<DIM1, T1>, Realm::Rect<DIM2, T2> >
           RealmDescriptor;
       std::vector<RealmDescriptor> descriptors(instances.size());
+      LargeNameClosure* closure = nullptr;
+      if (runtime->profiler != nullptr)
+        closure = new LargeNameClosure(this, fid, instances.size());
       for (unsigned idx = 0; idx < instances.size(); idx++)
       {
         const FieldDataDescriptor& src = instances[idx];
@@ -2694,6 +2695,8 @@ namespace Legion {
         dst.index_space = src.domain;
         dst.inst = src.inst;
         dst.field_offset = fid;
+        if (closure != nullptr)
+          closure->record_instance_name(src.inst, src.unique, src.space);
       }
       // Perform the operation
       DomainT<DIM1, T1> local_space;
@@ -2710,7 +2713,7 @@ namespace Legion {
       Realm::ProfilingRequestSet requests;
       if (runtime->profiler != nullptr)
         runtime->profiler->add_partition_request(
-            requests, op, DEP_PART_BY_PREIMAGE_RANGE, precondition);
+            requests, op, DEP_PART_BY_PREIMAGE_RANGE, precondition, closure);
       ApEvent result(local_space.create_subspaces_by_preimage(
           descriptors, targets, subspaces, requests, precondition));
       if ((spy_logging_level > LIGHT_SPY_LOGGING) &&
@@ -2776,6 +2779,9 @@ namespace Legion {
           Realm::IndexSpace<DIM1, T1>, Realm::Point<DIM2, T2> >
           RealmDescriptor;
       std::vector<RealmDescriptor> descriptors(instances.size());
+      LargeNameClosure* closure = nullptr;
+      if (runtime->profiler != nullptr)
+        closure = new LargeNameClosure(this, fid, instances.size());
       for (unsigned idx = 0; idx < instances.size(); idx++)
       {
         const FieldDataDescriptor& src = instances[idx];
@@ -2783,6 +2789,8 @@ namespace Legion {
         dst.index_space = src.domain;
         dst.inst = src.inst;
         dst.field_offset = fid;
+        if (closure != nullptr)
+          closure->record_instance_name(src.inst, src.unique, src.space);
       }
       // Get the range index space
       IndexSpaceNodeT<DIM2, T2>* range_node =
@@ -2808,7 +2816,7 @@ namespace Legion {
       Realm::ProfilingRequestSet requests;
       if (runtime->profiler != nullptr)
         runtime->profiler->add_partition_request(
-            requests, op, DEP_PART_ASSOCIATION, precondition);
+            requests, op, DEP_PART_ASSOCIATION, precondition, closure);
       ApEvent result(local_space.create_association(
           descriptors, range_space, requests, precondition));
       if ((spy_logging_level > LIGHT_SPY_LOGGING) &&

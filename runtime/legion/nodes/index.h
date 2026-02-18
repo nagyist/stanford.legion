@@ -37,12 +37,33 @@ namespace Legion {
       {
         return (color < rhs.color);
       }
+      inline void serialize(Serializer& rez) const
+      {
+        rez.serialize(domain);
+        rez.serialize(color);
+        rez.serialize(inst);
+        rez.serialize(unique);
+        rez.serialize(space);
+      }
+      inline void deserialize(Deserializer& derez)
+      {
+        derez.deserialize(domain);
+        derez.deserialize(color);
+        derez.deserialize(inst);
+        derez.deserialize(unique);
+        derez.deserialize(space);
+      }
     public:
       // Index space user events for these domains are already
       // added by the operation that populates these structs
       Domain domain;
       DomainPoint color;
       PhysicalInstance inst;
+      // These are not necessary for functional correctness but
+      // are used by the profiler to record the instances and
+      // names of domains being used by the dependent partitions
+      LgEvent unique;       // unique event for inst
+      DistributedID space;  // index space for domain
     };
 
     struct DeppartResult {
@@ -607,6 +628,7 @@ namespace Legion {
       virtual bool set_output_union(
           const std::map<DomainPoint, DomainPoint>& sizes) override;
       virtual void tighten_index_space(void) override;
+      virtual DistributedID record_profiler_expression(void) override;
       virtual bool check_empty(void) override;
       virtual IndexSpaceNode* create_node(
           IndexSpace handle, RtEvent initialized, Provenance* provenance,
@@ -618,8 +640,6 @@ namespace Legion {
           IndexSpaceNode* privilege_node) override;
     public:
       void log_index_space_points(const Realm::IndexSpace<DIM, T>& space) const;
-      void log_profiler_index_space_points(
-          const Realm::IndexSpace<DIM, T>& tight_space) const;
     public:
       virtual ApEvent compute_pending_space(
           Operation* op, const std::vector<IndexSpace>& handles,

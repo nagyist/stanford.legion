@@ -111,22 +111,27 @@ struct ScaleRecord {
 }
 
 #[derive(Debug)]
-pub struct OperationInstInfoDumpInstVec<'a>(pub &'a Vec<OperationInstInfo>, pub &'a State);
+pub struct OperationInstInfoDumpInstVec<'a>(
+    pub &'a BTreeMap<Option<u32>, Vec<OperationInstInfo>>,
+    pub &'a State,
+);
 
 impl fmt::Display for OperationInstInfoDumpInstVec<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // remove duplications
         let mut insts_set = BTreeSet::new();
-        for elt in self.0.iter() {
-            if let Some(inst) = self.1.find_inst(elt.inst_uid) {
-                insts_set.insert(inst);
-            } else {
-                conditional_assert!(
-                    false,
-                    Config::all_logs(),
-                    "Operation can not find inst:0x{:x}",
-                    elt.inst_uid.0
-                );
+        for (_, elmts) in self.0.iter() {
+            for elt in elmts.iter() {
+                if let Some(inst) = self.1.find_inst(elt.inst_uid) {
+                    insts_set.insert(inst);
+                } else {
+                    conditional_assert!(
+                        false,
+                        Config::all_logs(),
+                        "Operation can not find inst:0x{:x}",
+                        elt.inst_uid.0
+                    );
+                }
             }
         }
         write!(f, "[")?;

@@ -107,6 +107,10 @@ namespace Legion {
       virtual ~InstanceNameClosure(void) { }
     public:
       virtual LgEvent find_instance_name(PhysicalInstance inst) const = 0;
+      virtual DistributedID find_instance_subspace(
+          PhysicalInstance inst) const = 0;
+      virtual DistributedID find_copy_expression(void) const = 0;
+      virtual ReductionOpID find_redop(void) const = 0;
     };
 
     /*
@@ -117,19 +121,66 @@ namespace Legion {
     template<size_t ENTRIES>
     class SmallNameClosure : public InstanceNameClosure {
     public:
-      SmallNameClosure(void);
+      SmallNameClosure(IndexSpaceExpression* expr, ReductionOpID redop = 0);
       SmallNameClosure(const SmallNameClosure& rhs) = delete;
       virtual ~SmallNameClosure(void) { }
     public:
       SmallNameClosure& operator=(const SmallNameClosure& rhs) = delete;
     public:
-      void record_instance_name(PhysicalInstance inst, LgEvent name);
+      void record_instance_name(
+          PhysicalInstance inst, LgEvent name, DistributedID subspace);
       virtual LgEvent find_instance_name(PhysicalInstance inst) const override;
+      virtual DistributedID find_instance_subspace(
+          PhysicalInstance inst) const override;
+      virtual DistributedID find_copy_expression(void) const override
+      {
+        return copy_expr;
+      }
+      virtual ReductionOpID find_redop(void) const override { return redop; }
     private:
       static_assert(ENTRIES > 0);
+      const DistributedID copy_expr;
+      const ReductionOpID redop;
       // Optimize for the common case of there being one or two entries
       PhysicalInstance instances[ENTRIES];
       LgEvent names[ENTRIES];
+      DistributedID subspaces[ENTRIES];
+    };
+
+    /*
+     * An instantiation of the instance name closure for a variable number of
+     * entries
+     */
+    class LargeNameClosure : public InstanceNameClosure {
+    public:
+      LargeNameClosure(
+          IndexSpaceExpression* expr, FieldID fid, size_t expected = 0,
+          ReductionOpID redop = 0);
+      LargeNameClosure(const LargeNameClosure& rhs) = delete;
+      virtual ~LargeNameClosure(void) { }
+    public:
+      LargeNameClosure& operator=(const LargeNameClosure& rhs) = delete;
+    public:
+      void record_instance_name(
+          PhysicalInstance inst, LgEvent name, DistributedID subspace);
+      virtual LgEvent find_instance_name(PhysicalInstance inst) const override;
+      virtual DistributedID find_instance_subspace(
+          PhysicalInstance inst) const override;
+      virtual DistributedID find_copy_expression(void) const override
+      {
+        return copy_expr;
+      }
+      virtual ReductionOpID find_redop(void) const override { return redop; }
+    public:
+      const DistributedID copy_expr;
+      const ReductionOpID redop;
+      const FieldID fid;
+      struct Entry {
+        PhysicalInstance instance;
+        LgEvent name;
+        DistributedID subspace;
+      };
+      std::vector<Entry> entries;
     };
 
     class LegionProfMarker {
@@ -376,12 +427,24 @@ namespace Legion {
         unsigned dim;
         DimensionKind k;
       };
+      struct PhysicalInstanceSpaces {
+      public:
+        LgEvent inst_uid;
+        DistributedID union_space;
+        DistributedID piece_space;
+      };
       struct PhysicalInstanceUsage {
       public:
         LgEvent inst_uid;
+        LgEvent fevent;
         UniqueID op_id;
-        unsigned index;
-        unsigned field;
+        timestamp_t start;
+        timestamp_t stop;
+        DistributedID index_expr;
+        PrivilegeMode mode;
+        ReductionOpID redop;
+        FieldID field;
+        int32_t index;
       };
       struct IndexSpaceSizeDesc {
       public:
@@ -413,6 +476,7 @@ namespace Legion {
         MemID src, dst;
         FieldID src_fid, dst_fid;
         LgEvent src_inst_uid, dst_inst_uid;
+        DistributedID src_expr, dst_expr;
         unsigned num_hops;
         bool indirect;
       };
@@ -425,6 +489,8 @@ namespace Legion {
         LgEvent creator;
         LgEvent critical;
         CollectiveKind collective;
+        ReductionOpID redop;
+        DistributedID copy_expr;
         std::vector<CopyInstInfo> inst_infos;
       };
       struct FillInstInfo {
@@ -442,6 +508,7 @@ namespace Legion {
         LgEvent creator;
         LgEvent critical;
         CollectiveKind collective;
+        DistributedID fill_expr;
         std::vector<FillInstInfo> inst_infos;
       };
       struct InstTimelineInfo {
@@ -454,6 +521,13 @@ namespace Legion {
         timestamp_t create, ready, destroy;
         LgEvent creator;
       };
+      struct PartInstInfo {
+      public:
+        MemID src;
+        FieldID fid;
+        LgEvent src_inst_uid;
+        DistributedID src_expr;
+      };
       struct PartitionInfo {
       public:
         UniqueID op_id;
@@ -462,6 +536,7 @@ namespace Legion {
         LgEvent fevent;
         LgEvent creator;
         LgEvent critical;
+        std::vector<PartInstInfo> inst_infos;
       };
       struct MapperCallInfo {
       public:
@@ -628,9 +703,13 @@ namespace Legion {
           unsigned align, bool has_align, EqualityKind eqk);
       void register_physical_instance_dim_order(
           LgEvent inst_uid, unsigned dim, DimensionKind k);
+      void register_physical_instance_spaces(
+          LgEvent inst_uid, DistributedID union_space,
+          DistributedID piece_space);
       void register_physical_instance_use(
-          LgEvent inst_uid, UniqueID op_id, unsigned index,
-          const std::vector<FieldID>& fields);
+          LgEvent inst_uid, UniqueID op_id, DistributedID index_expr,
+          FieldID field, PrivilegeMode mode, ReductionOpID redop,
+          timestamp_t start_time, timestamp_t stop_time, int index = -1);
       void register_index_space_size(
           UniqueID id, unsigned long long dense_size,
           unsigned long long sparse_size, bool is_sparse);
@@ -738,6 +817,7 @@ namespace Legion {
       std::deque<PhysicalInstRegionDesc> phy_inst_rdesc;
       std::deque<PhysicalInstLayoutDesc> phy_inst_layout_rdesc;
       std::deque<PhysicalInstDimOrderDesc> phy_inst_dim_order_rdesc;
+      std::deque<PhysicalInstanceSpaces> phy_inst_spaces;
       std::deque<PhysicalInstanceUsage> phy_inst_usage;
       std::deque<IndexSpaceSizeDesc> index_space_size_desc;
       std::deque<MetaInfo> meta_infos;
@@ -848,7 +928,8 @@ namespace Legion {
           LgEvent unique_event);
       void add_partition_request(
           Realm::ProfilingRequestSet& requests, Operation* op,
-          DepPartOpKind part_op, LgEvent critical);
+          DepPartOpKind part_op, LgEvent critical,
+          LargeNameClosure* closure = nullptr);
       // Adding a message profiling request is a static method
       // because we might not have a profiler on the local node
       static void add_message_request(
@@ -878,7 +959,8 @@ namespace Legion {
           LgEvent unique_event);
       void add_partition_request(
           Realm::ProfilingRequestSet& requests, UniqueID uid,
-          DepPartOpKind part_op, LgEvent critical);
+          DepPartOpKind part_op, LgEvent critical,
+          LargeNameClosure* closure = nullptr);
     public:
       void profile_barrier_arrival(
           Realm::Barrier bar, size_t count, LgEvent precondition,

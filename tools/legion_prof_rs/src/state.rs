@@ -2,7 +2,7 @@ use std::cmp::{Ordering, Reverse, max};
 use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
 use std::convert::TryFrom;
 use std::fmt;
-use std::num::NonZeroU64;
+use std::num::{NonZeroU32, NonZeroU64};
 use std::sync::OnceLock;
 
 use derive_more::{Add, From, LowerHex, Sub};
@@ -21,6 +21,7 @@ use serde::Serialize;
 use slice_group_by::GroupBy;
 
 use crate::backend::common::{CopyInstInfoVec, FillInstInfoVec, InstPretty, SizePretty};
+use crate::geometry::{ISpace, ISpaceID};
 use crate::num_util::Postincrement;
 use crate::serialize::Record;
 
@@ -181,10 +182,58 @@ pub enum DimKind {
     OuterDimR = 27,
 }
 
+impl fmt::Display for DimKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            DimKind::DimX => "X",
+            DimKind::DimY => "Y",
+            DimKind::DimZ => "Z",
+            DimKind::DimW => "W",
+            DimKind::DimV => "V",
+            DimKind::DimU => "U",
+            DimKind::DimT => "T",
+            DimKind::DimS => "S",
+            DimKind::DimR => "R",
+            DimKind::DimF => "F",
+            DimKind::InnerDimX => "Inner X",
+            DimKind::OuterDimX => "Outer X",
+            DimKind::InnerDimY => "Inner Y",
+            DimKind::OuterDimY => "Outer Y",
+            DimKind::InnerDimZ => "Inner Z",
+            DimKind::OuterDimZ => "Outer Z",
+            DimKind::InnerDimW => "Inner W",
+            DimKind::OuterDimW => "Outer W",
+            DimKind::InnerDimV => "Inner V",
+            DimKind::OuterDimV => "Outer V",
+            DimKind::InnerDimU => "Inner U",
+            DimKind::OuterDimU => "Outer U",
+            DimKind::InnerDimT => "Inner T",
+            DimKind::OuterDimT => "Outer T",
+            DimKind::InnerDimS => "Inner S",
+            DimKind::OuterDimS => "Outer S",
+            DimKind::InnerDimR => "Inner R",
+            DimKind::OuterDimR => "Outer R",
+        };
+        f.write_str(s)
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DeviceKind {
     Device,
     Host,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+pub struct ReductionID(pub NonZeroU32);
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+pub enum PrivilegeMode {
+    NoAccess,
+    ReadOnly,
+    ReadWrite,
+    WriteOnly,
+    Reduce(ReductionID),
 }
 
 // the class used to save configurations
@@ -256,6 +305,9 @@ impl Timestamp {
     }
     pub const fn from_ns(nanoseconds: u64) -> Timestamp {
         Timestamp(NonMaxU64::new(nanoseconds).unwrap())
+    }
+    pub const fn from_value(value: NonMaxU64) -> Timestamp {
+        Timestamp(value)
     }
     pub fn to_us(&self) -> f64 {
         self.0.get() as f64 / 1000.0
@@ -1467,6 +1519,21 @@ impl ChanEntry {
     fn trim_time_range(&mut self, start: Timestamp, stop: Timestamp) -> bool {
         self.time_range_mut().trim_time_range(start, stop)
     }
+
+    pub fn launch_domain(&self) -> Option<ISpaceID> {
+        match self {
+            ChanEntry::Copy(copy) => copy.copy_expr,
+            ChanEntry::Fill(fill) => fill.fill_expr,
+            ChanEntry::DepPart(_) => None,
+        }
+    }
+    pub fn reduction_op(&self) -> Option<ReductionID> {
+        match self {
+            ChanEntry::Copy(copy) => copy.redop,
+            ChanEntry::Fill(_) => None,
+            ChanEntry::DepPart(_) => None,
+        }
+    }
 }
 
 impl ContainerEntry for ChanEntry {
@@ -1803,99 +1870,6 @@ impl Container for Chan {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
-pub enum Bounds {
-    Point {
-        point: Vec<i64>,
-        dim: u32,
-    },
-    Rect {
-        lo: Vec<i64>,
-        hi: Vec<i64>,
-        dim: u32,
-    },
-    Empty,
-    Unknown,
-}
-
-#[derive(Debug)]
-pub struct ISpaceSize {
-    pub dense_size: u64,
-    pub sparse_size: u64,
-    pub is_sparse: bool,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
-pub struct ISpaceID(pub u64);
-
-#[derive(Debug)]
-pub struct ISpace {
-    pub ispace_id: ISpaceID,
-    pub bounds: Bounds,
-    pub name: Option<String>,
-    pub parent: Option<IPartID>,
-    pub size: Option<ISpaceSize>,
-}
-
-impl ISpace {
-    fn new(ispace_id: ISpaceID) -> Self {
-        ISpace {
-            ispace_id,
-            bounds: Bounds::Unknown,
-            name: None,
-            parent: None,
-            size: None,
-        }
-    }
-
-    // Important: these methods can get called multiple times in a
-    // sparse instance. In this case the bounds will NOT be
-    // accurate. But we don't use bounds in such cases anyway since we
-    // refer to the dense/sparse sizes.
-    fn set_point(&mut self, dim: u32, values: &[i64]) -> &mut Self {
-        let new_bounds = Bounds::Point {
-            point: values.to_owned(),
-            dim,
-        };
-        self.bounds = new_bounds;
-        self
-    }
-    fn set_rect(&mut self, dim: u32, values: &[i64], max_dim: i32) -> &mut Self {
-        let new_bounds = Bounds::Rect {
-            lo: values[0..(dim as usize)].to_owned(),
-            hi: values[(max_dim as usize)..(max_dim as usize) + (dim as usize)].to_owned(),
-            dim,
-        };
-        self.bounds = new_bounds;
-        self
-    }
-    fn set_empty(&mut self) -> &mut Self {
-        let new_bounds = Bounds::Empty;
-        self.bounds = new_bounds;
-        self
-    }
-
-    fn set_name(&mut self, name: &str) -> &mut Self {
-        assert!(self.name.is_none());
-        self.name = Some(name.to_owned());
-        self
-    }
-    fn set_parent(&mut self, parent: IPartID) -> &mut Self {
-        assert!(self.parent.is_none());
-        self.parent = Some(parent);
-        self
-    }
-    fn set_size(&mut self, dense_size: u64, sparse_size: u64, is_sparse: bool) -> &mut Self {
-        assert!(self.size.is_none());
-        self.size = Some(ISpaceSize {
-            dense_size,
-            sparse_size,
-            is_sparse,
-        });
-        self
-    }
-}
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct IPartID(pub u64);
 
@@ -2031,6 +2005,15 @@ impl Align {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct InstID(pub u64);
 
+impl InstID {
+    // Important: keep this in sync with realm/id.h
+    // MEMORY:      tag:8 = 0x1e, owner_node:16,   (unused):32, mem_idx: 8
+    // INSTANCE:    tag:2 = 0b01, owner_node:16,   creator_node:16, mem_idx: 8, inst_idx: 22
+    pub fn mem_id(&self) -> MemID {
+        MemID((0x1e << 56) | ((self.0 & (0xffff << 46)) >> 6) | ((self.0 & (0xff << 22)) >> 22))
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct Dim(pub u32);
 
@@ -2039,7 +2022,7 @@ pub struct Inst {
     pub base: Base,
     pub inst_id: Option<InstID>,
     pub op_id: Option<OpID>,
-    mem_id: Option<MemID>,
+    pub mem_id: Option<MemID>,
     pub size: Option<u64>,
     // Time range for instances is a bit unusual since there are nominally
     // only three interesting times: create, ready, end (destroy). We also
@@ -2050,10 +2033,12 @@ pub struct Inst {
     // it was requested.
     pub time_range: TimeRange,
     pub ispace_ids: Vec<ISpaceID>,
-    pub fspace_ids: Vec<FSpaceID>,
+    pub fspace_id: Option<FSpaceID>,
     tree_id: Option<TreeID>,
-    pub fields: BTreeMap<FSpaceID, Vec<FieldID>>,
-    pub align_desc: BTreeMap<FSpaceID, Vec<Align>>,
+    pub fields: Vec<FieldID>,
+    pub union_space: Option<ISpaceID>,
+    pub piece_space: Option<ISpaceID>,
+    pub align_desc: Vec<Align>,
     pub dim_order: BTreeMap<Dim, DimKind>,
     pub creator: Option<ProfUID>,
     pub critical: Option<EventID>,
@@ -2070,10 +2055,12 @@ impl Inst {
             size: None,
             time_range: TimeRange::new_empty(),
             ispace_ids: Vec::new(),
-            fspace_ids: Vec::new(),
+            fspace_id: None,
             tree_id: None,
-            fields: BTreeMap::new(),
-            align_desc: BTreeMap::new(),
+            fields: Vec::new(),
+            union_space: None,
+            piece_space: None,
+            align_desc: Vec::new(),
             dim_order: BTreeMap::new(),
             creator: None,
             critical: None,
@@ -2130,14 +2117,38 @@ impl Inst {
         self.ispace_ids.push(ispace_id);
         self
     }
-    fn add_fspace(&mut self, fspace_id: FSpaceID) -> &mut Self {
-        self.fspace_ids.push(fspace_id);
-        self.fields.entry(fspace_id).or_default();
-        self.align_desc.entry(fspace_id).or_default();
+    fn set_fspace(&mut self, fspace_id: FSpaceID) -> &mut Self {
+        if let Some(current_id) = self.fspace_id {
+            assert!(current_id == fspace_id);
+        } else {
+            self.fspace_id = Some(fspace_id);
+        }
         self
     }
     fn add_field(&mut self, fspace_id: FSpaceID, field_id: FieldID) -> &mut Self {
-        self.fields.entry(fspace_id).or_default().push(field_id);
+        assert!(self.fspace_id == Some(fspace_id));
+        self.fields.push(field_id);
+        self
+    }
+    fn set_spaces(
+        &mut self,
+        union_space: Option<ISpaceID>,
+        piece_space: Option<ISpaceID>,
+    ) -> &mut Self {
+        if let Some(next_union) = union_space {
+            if let Some(prev_union) = self.union_space {
+                assert!(prev_union == next_union);
+            } else {
+                self.union_space = union_space;
+            }
+        }
+        if let Some(next_piece) = piece_space {
+            if let Some(prev_piece) = self.piece_space {
+                assert!(prev_piece == next_piece);
+            } else {
+                self.piece_space = piece_space;
+            }
+        }
         self
     }
     fn add_align_desc(
@@ -2148,9 +2159,8 @@ impl Inst {
         align_desc: u32,
         has_align: bool,
     ) -> &mut Self {
+        assert!(self.fspace_id == Some(fspace_id));
         self.align_desc
-            .entry(fspace_id)
-            .or_default()
             .push(Align::new(field_id, eqk, align_desc, has_align));
         self
     }
@@ -2657,16 +2667,40 @@ impl OpKind {
 #[derive(Debug)]
 pub struct OperationInstInfo {
     pub inst_uid: ProfUID,
-    _index: u32,
-    _field_id: FieldID,
+    pub index_expr: Option<ISpaceID>,
+    pub privilege: PrivilegeMode,
+    pub field: FieldID,
+    pub fevent: EventID,
+    pub start: Timestamp,
+    // This is an option timestamp because we might not
+    // know when the usage is done becasue it escapes out
+    // the end of the task. A None value here means that
+    // we need to consult the completion of the operation
+    // associated with the given fevent to find the stop time
+    pub stop: Option<Timestamp>,
+    pub index: Option<u32>,
 }
 
 impl OperationInstInfo {
-    fn new(inst_uid: ProfUID, index: u32, field_id: FieldID) -> Self {
+    fn new(
+        inst_uid: ProfUID,
+        index_expr: Option<ISpaceID>,
+        privilege: PrivilegeMode,
+        field: FieldID,
+        fevent: EventID,
+        start: Timestamp,
+        stop: Option<Timestamp>,
+        index: Option<u32>,
+    ) -> Self {
         OperationInstInfo {
             inst_uid,
-            _index: index,
-            _field_id: field_id,
+            index_expr,
+            privilege,
+            field,
+            fevent,
+            start,
+            stop,
+            index,
         }
     }
 }
@@ -2676,7 +2710,7 @@ pub struct Operation {
     pub parent_id: Option<OpID>,
     pub kind: Option<OpKindID>,
     pub provenance: Option<ProvenanceID>,
-    pub operation_inst_infos: Vec<OperationInstInfo>,
+    pub operation_inst_infos: BTreeMap<Option<u32>, Vec<OperationInstInfo>>,
 }
 
 impl Operation {
@@ -2685,7 +2719,7 @@ impl Operation {
             parent_id: None,
             kind: None,
             provenance: None,
-            operation_inst_infos: Vec::new(),
+            operation_inst_infos: BTreeMap::new(),
         }
     }
     fn set_parent_id(&mut self, parent_id: Option<OpID>) -> &mut Self {
@@ -2760,6 +2794,8 @@ pub struct CopyInstInfo {
     pub dst_fid: FieldID,
     pub src_inst_uid: Option<ProfUID>,
     pub dst_inst_uid: Option<ProfUID>,
+    pub src_expr: Option<ISpaceID>,
+    pub dst_expr: Option<ISpaceID>,
     pub num_hops: u32,
     pub indirect: bool,
 }
@@ -2772,6 +2808,8 @@ impl CopyInstInfo {
         dst_fid: FieldID,
         src_inst_uid: Option<ProfUID>,
         dst_inst_uid: Option<ProfUID>,
+        src_expr: Option<ISpaceID>,
+        dst_expr: Option<ISpaceID>,
         num_hops: u32,
         indirect: bool,
     ) -> Self {
@@ -2782,6 +2820,8 @@ impl CopyInstInfo {
             dst_fid,
             src_inst_uid,
             dst_inst_uid,
+            src_expr,
+            dst_expr,
             num_hops,
             indirect,
         }
@@ -2798,6 +2838,8 @@ pub struct Copy {
     pub op_id: OpID,
     pub size: u64,
     pub collective: u32,
+    pub redop: Option<ReductionID>,
+    pub copy_expr: Option<ISpaceID>,
     pub copy_kind: Option<CopyKind>,
     pub copy_inst_infos: Vec<CopyInstInfo>,
 }
@@ -2811,6 +2853,8 @@ impl Copy {
         creator: Option<ProfUID>,
         critical: Option<EventID>,
         collective: u32,
+        redop: Option<ReductionID>,
+        copy_expr: Option<ISpaceID>,
     ) -> Self {
         Copy {
             base,
@@ -2821,6 +2865,8 @@ impl Copy {
             op_id,
             size,
             collective,
+            redop,
+            copy_expr,
             copy_kind: None,
             copy_inst_infos: Vec::new(),
         }
@@ -2958,6 +3004,8 @@ pub struct Fill {
     chan_id: Option<ChanID>,
     pub op_id: OpID,
     pub size: u64,
+    pub collective: u32,
+    pub fill_expr: Option<ISpaceID>,
     pub fill_inst_infos: Vec<FillInstInfo>,
 }
 
@@ -2969,6 +3017,8 @@ impl Fill {
         size: u64,
         creator: Option<ProfUID>,
         critical: Option<EventID>,
+        collective: u32,
+        fill_expr: Option<ISpaceID>,
     ) -> Self {
         Fill {
             base,
@@ -2978,6 +3028,8 @@ impl Fill {
             chan_id: None,
             op_id,
             size,
+            collective,
+            fill_expr,
             fill_inst_infos: Vec::new(),
         }
     }
@@ -2998,6 +3050,25 @@ impl Fill {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
+pub struct DepPartInstInfo {
+    _src: MemID,
+    pub fid: FieldID,
+    pub src_inst_uid: ProfUID,
+    pub src_expr: Option<ISpaceID>,
+}
+
+impl DepPartInstInfo {
+    fn new(src: MemID, fid: FieldID, src_inst_uid: ProfUID, src_expr: Option<ISpaceID>) -> Self {
+        DepPartInstInfo {
+            _src: src,
+            fid,
+            src_inst_uid,
+            src_expr,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct DepPart {
     base: Base,
@@ -3006,6 +3077,7 @@ pub struct DepPart {
     pub part_op: DepPartKind,
     time_range: TimeRange,
     pub op_id: OpID,
+    pub deppart_inst_infos: Vec<DepPartInstInfo>,
 }
 
 impl DepPart {
@@ -3024,7 +3096,12 @@ impl DepPart {
             part_op,
             time_range,
             op_id,
+            deppart_inst_infos: Vec::new(),
         }
+    }
+
+    fn add_deppart_inst_info(&mut self, deppart_inst_info: DepPartInstInfo) {
+        self.deppart_inst_infos.push(deppart_inst_info);
     }
 }
 
@@ -3765,6 +3842,8 @@ impl State {
         critical: Option<EventID>,
         fevent: EventID,
         collective: u32,
+        redop: Option<ReductionID>,
+        copy_expr: Option<ISpaceID>,
         copies: &'a mut BTreeMap<EventID, Copy>,
     ) -> &'a mut Copy {
         let alloc = &mut self.prof_uid_allocator;
@@ -3789,6 +3868,8 @@ impl State {
                 creator_uid,
                 critical,
                 collective,
+                redop,
+                copy_expr,
             )
         })
     }
@@ -3801,6 +3882,8 @@ impl State {
         creator: Option<EventID>,
         critical: Option<EventID>,
         fevent: EventID,
+        collective: u32,
+        fill_expr: Option<ISpaceID>,
         fills: &'a mut BTreeMap<EventID, Fill>,
     ) -> &'a mut Fill {
         let alloc = &mut self.prof_uid_allocator;
@@ -3816,13 +3899,22 @@ impl State {
             false,
         );
         assert!(!fills.contains_key(&fevent));
-        fills
-            .entry(fevent)
-            .or_insert_with(|| Fill::new(base, time_range, op_id, size, creator_uid, critical))
+        fills.entry(fevent).or_insert_with(|| {
+            Fill::new(
+                base,
+                time_range,
+                op_id,
+                size,
+                creator_uid,
+                critical,
+                collective,
+                fill_expr,
+            )
+        })
     }
 
-    fn create_deppart(
-        &mut self,
+    fn create_deppart<'a>(
+        &'a mut self,
         node_id: NodeID,
         op_id: OpID,
         part_op: DepPartKind,
@@ -3830,6 +3922,7 @@ impl State {
         creator: Option<EventID>,
         critical: Option<EventID>,
         fevent: EventID,
+        depparts: &'a mut BTreeMap<EventID, DepPart>,
     ) {
         self.create_op(op_id);
         let alloc = &mut self.prof_uid_allocator;
@@ -3844,20 +3937,12 @@ impl State {
             time_range.stop,
             false,
         );
-        let chan_id = ChanID::new_deppart(node_id);
-        self.prof_uid_chan.insert(base.prof_uid, chan_id);
-        let chan = self
-            .chans
-            .entry(chan_id)
-            .or_insert_with(|| Chan::new(chan_id));
-        chan.add_deppart(DepPart::new(
-            base,
-            part_op,
-            time_range,
-            op_id,
-            creator_uid,
-            critical,
-        ));
+        assert!(node_id == fevent.node_id());
+        let previous = depparts.insert(
+            fevent,
+            DepPart::new(base, part_op, time_range, op_id, creator_uid, critical),
+        );
+        assert!(previous.is_none());
     }
 
     fn find_chan_mut(&mut self, chan_id: ChanID) -> &mut Chan {
@@ -3914,6 +3999,7 @@ impl State {
         let mut insts = BTreeMap::new();
         let mut copies = BTreeMap::new();
         let mut fills = BTreeMap::new();
+        let mut depparts = BTreeMap::new();
         let mut profs = BTreeMap::new();
         for record in records {
             process_record(
@@ -3923,6 +4009,7 @@ impl State {
                 &mut insts,
                 &mut copies,
                 &mut fills,
+                &mut depparts,
                 &mut profs,
                 call_threshold,
             );
@@ -3949,6 +4036,17 @@ impl State {
                     unreachable!();
                 }
             }
+        }
+        // put depparts into channels
+        for (fevent, deppart) in depparts {
+            let node_id = fevent.node_id();
+            let chan_id = ChanID::new_deppart(node_id);
+            self.prof_uid_chan.insert(deppart.base.prof_uid, chan_id);
+            let chan = self
+                .chans
+                .entry(chan_id)
+                .or_insert_with(|| Chan::new(chan_id));
+            chan.add_deppart(deppart);
         }
         // for each prof task find it's creator and fill in the appropriate
         // creation and ready times
@@ -4518,6 +4616,7 @@ fn process_record(
     insts: &mut BTreeMap<ProfUID, Inst>,
     copies: &mut BTreeMap<EventID, Copy>,
     fills: &mut BTreeMap<EventID, Fill>,
+    depparts: &mut BTreeMap<EventID, DepPart>,
     profs: &mut BTreeMap<ProfUID, (EventID, ProfUID, bool)>,
     call_threshold: Timestamp,
 ) {
@@ -4734,7 +4833,7 @@ fn process_record(
             state
                 .create_inst(*fevent, insts)
                 .add_ispace(*ispace_id)
-                .add_fspace(*fspace_id)
+                .set_fspace(*fspace_id)
                 .set_tree(*tree_id);
         }
         Record::PhysicalInstLayoutDesc {
@@ -4765,19 +4864,44 @@ fn process_record(
                 .create_inst(*fevent, insts)
                 .add_dim_order(dim, dim_kind);
         }
+        Record::PhysicalInstanceSpaces {
+            fevent,
+            union_space,
+            piece_space,
+        } => {
+            state
+                .create_inst(*fevent, insts)
+                .set_spaces(*union_space, *piece_space);
+        }
         Record::PhysicalInstanceUsage {
+            inst_event,
             fevent,
             op_id,
-            index_id,
-            field_id,
+            start,
+            stop,
+            index_expr,
+            field,
+            privilege,
+            index,
         } => {
             state.create_op(*op_id);
-            let inst_uid = state.create_fevent_reference(*fevent);
-            let operation_inst_info = OperationInstInfo::new(inst_uid, *index_id, *field_id);
+            let inst_uid = state.create_fevent_reference(*inst_event);
+            let operation_inst_info = OperationInstInfo::new(
+                inst_uid,
+                *index_expr,
+                *privilege,
+                *field,
+                *fevent,
+                *start,
+                *stop,
+                *index,
+            );
             state
                 .find_op_mut(*op_id)
                 .unwrap()
                 .operation_inst_infos
+                .entry(*index)
+                .or_insert_with(Vec::new)
                 .push(operation_inst_info);
         }
         Record::TaskKind {
@@ -5006,6 +5130,8 @@ fn process_record(
             critical,
             fevent,
             collective,
+            redop,
+            copy_expr,
         } => {
             let time_range = TimeRange::new_full(*create, *ready, *start, *stop);
             state.create_op(*op_id);
@@ -5017,6 +5143,8 @@ fn process_record(
                 *critical,
                 *fevent,
                 *collective,
+                *redop,
+                *copy_expr,
                 copies,
             );
             state.update_last_time(*stop);
@@ -5028,6 +5156,8 @@ fn process_record(
             dst_fid,
             src_inst,
             dst_inst,
+            src_expr,
+            dst_expr,
             fevent,
             num_hops,
             indirect,
@@ -5044,7 +5174,8 @@ fn process_record(
             let src_uid = src_inst.map(|i| state.create_fevent_reference(i));
             let dst_uid = dst_inst.map(|i| state.create_fevent_reference(i));
             let copy_inst_info = CopyInstInfo::new(
-                src_mem, dst_mem, *src_fid, *dst_fid, src_uid, dst_uid, *num_hops, *indirect,
+                src_mem, dst_mem, *src_fid, *dst_fid, src_uid, dst_uid, *src_expr, *dst_expr,
+                *num_hops, *indirect,
             );
             copy.add_copy_inst_info(copy_inst_info);
         }
@@ -5058,11 +5189,21 @@ fn process_record(
             creator,
             critical,
             fevent,
+            collective,
+            fill_expr,
         } => {
             let time_range = TimeRange::new_full(*create, *ready, *start, *stop);
             state.create_op(*op_id);
             state.create_fill(
-                time_range, *op_id, *size, *creator, *critical, *fevent, fills,
+                time_range,
+                *op_id,
+                *size,
+                *creator,
+                *critical,
+                *fevent,
+                *collective,
+                *fill_expr,
+                fills,
             );
             state.update_last_time(*stop);
         }
@@ -5134,8 +5275,21 @@ fn process_record(
                 *creator,
                 *critical,
                 *fevent,
+                depparts,
             );
             state.update_last_time(*stop);
+        }
+        Record::PartInstInfo {
+            src,
+            fid,
+            src_inst,
+            src_expr,
+            fevent,
+        } => {
+            let src_uid = state.create_fevent_reference(*src_inst);
+            let part_inst_info = DepPartInstInfo::new(*src, *fid, src_uid, *src_expr);
+            let part = depparts.get_mut(fevent).unwrap();
+            part.add_deppart_inst_info(part_inst_info);
         }
         Record::MapperCallInfo {
             mapper_id,

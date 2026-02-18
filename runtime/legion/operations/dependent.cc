@@ -704,6 +704,8 @@ namespace Legion {
           desc.inst = manager->get_instance();
           desc.domain = domain;
           desc.color = color;
+          desc.unique = manager->get_unique_event();
+          desc.space = handle.get_id(false /*filter*/);
           if (instances_ready.exists())
             index_preconditions.emplace_back(instances_ready);
           if (domain_ready.exists())
@@ -737,6 +739,8 @@ namespace Legion {
         desc.inst = manager->get_instance();
         desc.domain = domain;
         desc.color = color;
+        desc.unique = manager->get_unique_event();
+        desc.space = handle.get_id(false /*filter*/);
         const FieldID fid = *(requirement.privilege_fields.begin());
         if (domain_ready.exists())
         {
@@ -1656,11 +1660,7 @@ namespace Legion {
     {
       rez.serialize<size_t>(descriptors.size());
       for (const FieldDataDescriptor& descriptor : descriptors)
-      {
-        rez.serialize(descriptor.domain);
-        rez.serialize(descriptor.color);
-        rez.serialize(descriptor.inst);
-      }
+        descriptor.serialize(rez);
     }
 
     //--------------------------------------------------------------------------
@@ -1677,11 +1677,7 @@ namespace Legion {
       derez.deserialize(num_descriptors);
       descriptors.resize(offset + num_descriptors);
       for (unsigned idx = 0; idx < num_descriptors; idx++)
-      {
-        derez.deserialize(descriptors[offset + idx].domain);
-        derez.deserialize(descriptors[offset + idx].color);
-        derez.deserialize(descriptors[offset + idx].inst);
-      }
+        descriptors[offset + idx].deserialize(derez);
     }
 
     /////////////////////////////////////////////////////////////
@@ -1709,11 +1705,7 @@ namespace Legion {
     {
       rez.serialize<size_t>(descriptors.size());
       for (const FieldDataDescriptor& descriptor : descriptors)
-      {
-        rez.serialize(descriptor.domain);
-        rez.serialize(descriptor.color);
-        rez.serialize(descriptor.inst);
-      }
+        descriptor.serialize(rez);
       rez.serialize<size_t>(remote_targets.size());
       for (const std::pair<const DomainPoint, Domain>& it : remote_targets)
       {
@@ -1735,11 +1727,7 @@ namespace Legion {
       derez.deserialize(num_descriptors);
       descriptors.resize(offset + num_descriptors);
       for (unsigned idx = 0; idx < num_descriptors; idx++)
-      {
-        derez.deserialize(descriptors[offset + idx].domain);
-        derez.deserialize(descriptors[offset + idx].color);
-        derez.deserialize(descriptors[offset + idx].inst);
-      }
+        descriptors[offset + idx].deserialize(derez);
       size_t num_targets;
       derez.deserialize(num_targets);
       for (unsigned idx = 0; idx < num_targets; idx++)
@@ -2115,6 +2103,8 @@ namespace Legion {
           desc.inst = manager->get_instance();
           desc.domain = domain;
           desc.color = color;
+          desc.unique = manager->get_unique_event();
+          desc.space = handle.get_id(false /*filter*/);
           if (instances_ready.exists())
             index_preconditions.emplace_back(instances_ready);
           if (domain_ready.exists())

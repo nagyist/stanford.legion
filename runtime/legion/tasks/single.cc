@@ -985,7 +985,6 @@ namespace Legion {
           }
           virtual_mapped[idx] = true;
         }
-        log_mapping_decision(idx, regions[idx], physical_instances[idx]);
         // Skip checks if the mapper promises it is safe
         if (!runtime->safe_mapper)
           continue;
@@ -1120,14 +1119,9 @@ namespace Legion {
         }
         const size_t output_offset = regions.size();
         for (unsigned idx = 0; idx < output_regions.size(); idx++)
-        {
           prepare_output_instance(
               idx, physical_instances[output_offset + idx], output_regions[idx],
               output.output_targets[idx], output.output_constraints[idx]);
-          log_mapping_decision(
-              output_offset + idx, output_regions[idx],
-              physical_instances[output_offset + idx]);
-        }
       }
       // If the variant has padded fields we need to get the atomic locks
       if (variant_impl->needs_padding)
@@ -1410,7 +1404,6 @@ namespace Legion {
           needs_reservations = true;
         if (instances.is_virtual_mapping())
           virtual_mapped[idx] = true;
-        log_mapping_decision(idx, regions[idx], instances);
       }
       if (needs_reservations)
         // We group all reservations together anyway
@@ -3175,6 +3168,7 @@ namespace Legion {
         for (unsigned idx = 0; idx < regions.size(); idx++)
         {
           legion_assert(regions[idx].handle_type == LEGION_SINGULAR_PROJECTION);
+          log_mapping_decision(idx, regions[idx], physical_instances[idx]);
           // If it was virtual mapper so it doesn't matter anyway.
           if (virtual_mapped[idx] || no_access_regions[idx])
           {
@@ -3227,11 +3221,15 @@ namespace Legion {
         }
         // Initialize output regions
         for (unsigned idx = 0; idx < output_regions.size(); ++idx)
+        {
+          log_mapping_decision(
+              regions.size() + idx, output_regions[idx],
+              physical_instances[regions.size() + idx]);
           execution_context->add_output_region(
               output_regions[idx], physical_instances[regions.size() + idx],
               is_output_global(idx), is_output_valid(idx),
               is_output_grouped(idx));
-
+        }
         // Initialize any region tree contexts
         execution_context->initialize_region_tree_contexts(
             clone_requirements, unmap_events);

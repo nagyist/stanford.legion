@@ -1,10 +1,11 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
+use crate::geometry::{Bounds, ISpaceID};
 use crate::state::{
-    Align, Bounds, ChanEntry, ChanID, ChanPoint, Config, Container, CopyInstInfo, DeviceKind,
-    DimKind, FSpace, FieldID, FillInstInfo, ISpaceID, Inst, MemID, MemKind, MemPoint, NodeID,
-    ProcID, ProcKind, ProcPoint, ProfUID, State, TimePoint, Timestamp,
+    Align, ChanEntry, ChanID, ChanPoint, Config, Container, CopyInstInfo, DeviceKind, DimKind,
+    FSpace, FieldID, FillInstInfo, Inst, MemID, MemKind, MemPoint, NodeID, ProcID, ProcKind,
+    ProcPoint, ProfUID, State, TimePoint, Timestamp,
 };
 
 use crate::conditional_assert;
@@ -557,13 +558,13 @@ impl fmt::Display for ISpacePretty<'_> {
             }
         }
         match &ispace.bounds {
-            Bounds::Point { point, dim } => {
-                for x in &point[..*dim as usize] {
+            Bounds::Point(point) => {
+                for x in &point.values {
                     write!(f, "[{}]", x)?;
                 }
             }
-            Bounds::Rect { lo, hi, dim } => {
-                for (l, h) in lo.iter().zip(hi.iter()).take(*dim as usize) {
+            Bounds::Rect(rect) => {
+                for (l, h) in rect.lo.values.iter().zip(rect.hi.values.iter()) {
                     write!(f, "[{}:{}]", l, h)?;
                 }
             }
@@ -617,8 +618,8 @@ impl fmt::Display for FieldsPretty<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let FieldsPretty(fspace, inst) = self;
 
-        let field_ids = inst.fields.get(&fspace.fspace_id).unwrap();
-        let align_desc = inst.align_desc.get(&fspace.fspace_id).unwrap();
+        let field_ids = &inst.fields;
+        let align_desc = &inst.align_desc;
         let mut i = field_ids.iter().zip(align_desc.iter()).peekable();
         while let Some((field_id, align)) = i.next() {
             write!(f, "{}", FieldPretty(fspace, *field_id, align))?;
@@ -643,8 +644,8 @@ impl fmt::Display for FSpacePretty<'_> {
             write!(f, "fspace:{}", fspace.fspace_id.0)?;
         }
 
-        let align_desc = inst.align_desc.get(&fspace.fspace_id).unwrap();
-        let fields = inst.fields.get(&fspace.fspace_id).unwrap();
+        let align_desc = &inst.align_desc;
+        let fields = &inst.fields;
 
         let mut fields = fields.iter().enumerate().peekable();
         if fields.peek().is_some() {
@@ -792,10 +793,9 @@ impl fmt::Display for InstPretty<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let InstPretty(inst, state) = self;
 
-        let mut ispace_ids = inst.ispace_ids.iter().enumerate().peekable();
-        while let Some((i, ispace_id)) = ispace_ids.next() {
-            let fspace_id = inst.fspace_ids[i];
-            let fspace = state.field_spaces.get(&fspace_id).unwrap();
+        let mut ispace_ids = inst.ispace_ids.iter().peekable();
+        while let Some(ispace_id) = ispace_ids.next() {
+            let fspace = state.field_spaces.get(&inst.fspace_id.unwrap()).unwrap();
 
             write!(
                 f,
@@ -843,26 +843,19 @@ impl fmt::Display for ChanEntryFieldsPretty<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let ChanEntryFieldsPretty(inst, field_ids, state) = self;
 
-        let fspace = inst.and_then(|inst| {
-            // FIXME (Elliott): not sure how we're supposed to do this if we
-            // have more than one field space in an instance
-            if inst.fspace_ids.len() == 1 {
-                let fspace_id = inst.fspace_ids[0];
-                Some(state.field_spaces.get(&fspace_id).unwrap())
-            } else {
-                None
-            }
-        });
+        if let Some(fspace_id) = &inst.unwrap().fspace_id {
+            let fspace = state.field_spaces.get(fspace_id);
 
-        let mut i = field_ids.iter().peekable();
-        while let Some(fid) = i.next() {
-            if let Some(field) = fspace.and_then(|fs| fs.fields.get(fid)) {
-                write!(f, "{} <{}>", field.name, fid.0)?;
-            } else {
-                write!(f, "<{}>", fid.0)?;
-            }
-            if i.peek().is_some() {
-                write!(f, ", ")?;
+            let mut i = field_ids.iter().peekable();
+            while let Some(fid) = i.next() {
+                if let Some(field) = fspace.and_then(|fs| fs.fields.get(fid)) {
+                    write!(f, "{} <{}>", field.name, fid.0)?;
+                } else {
+                    write!(f, "<{}>", fid.0)?;
+                }
+                if i.peek().is_some() {
+                    write!(f, ", ")?;
+                }
             }
         }
         Ok(())

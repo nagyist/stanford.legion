@@ -119,6 +119,7 @@ namespace Legion {
         return false;
       }
     public:
+      virtual DistributedID record_profiler_expression(void) = 0;
       virtual ApEvent issue_fill(
           Operation* op, const PhysicalTraceInfo& trace_info,
           const std::vector<CopySrcDstField>& dst_fields,
@@ -222,6 +223,9 @@ namespace Legion {
           IndexSpaceExpression* rhs);
       template<int DIM, typename T>
       uint64_t get_canonical_hash_internal(const DomainT<DIM, T>& domain) const;
+      template<int DIM, typename T>
+      void log_profiler_points(
+          DistributedID did, const DomainT<DIM, T>& tight_space) const;
     protected:
       template<int DIM, typename T>
       inline ApEvent issue_fill_internal(
@@ -289,6 +293,7 @@ namespace Legion {
       std::atomic<bool> has_volume;
       bool empty;
       std::atomic<bool> has_empty;
+      std::atomic<bool> profiler_logged = false;
     };
 
     /**
@@ -449,6 +454,7 @@ namespace Legion {
       virtual PieceIteratorImpl* create_piece_iterator(
           const void* piece_list, size_t piece_list_size,
           IndexSpaceNode* privilege_node) override;
+      virtual DistributedID record_profiler_expression(void) override;
     public:
       virtual IndexSpaceExpression* inline_union(
           IndexSpaceExpression* rhs) override;

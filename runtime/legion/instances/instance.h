@@ -99,7 +99,7 @@ namespace Legion {
     public:
       LayoutDescription* const layout;
       FieldSpaceNode* const field_space_node;
-      IndexSpaceExpression* instance_domain;
+      IndexSpaceExpression* const instance_domain;
       const RegionTreeID tree_id;
     };
 
