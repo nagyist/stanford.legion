@@ -153,8 +153,8 @@ namespace Legion {
       for (unsigned idx = 0; idx < pop_count; idx++)
       {
         int index = compressed.find_next_set(next_start);
-        CopySrcDstField& field = dst_fields[offset + idx];
-        field = offsets[index];
+        legion_assert(index >= 0);
+        dst_fields[offset + idx] = offsets[index];
         // We'll start looking again at the next index after this one
         next_start = index + 1;
       }

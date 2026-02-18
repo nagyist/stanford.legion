@@ -35,7 +35,7 @@ namespace Legion {
           Operation* op, unsigned src_index, unsigned dst_index,
           const RegionRequirement& src_req, const RegionRequirement& dst_req,
           const InstanceSet& target_instances,
-          const op::vector<op::FieldMaskMap<InstanceView> >& target_views,
+          const op::vector<op::FieldMaskMap<InstanceView>>& target_views,
           const std::vector<IndividualView*>& source_views,
           const ApEvent precondition, const ApEvent dst_ready,
           const PredEvent pred_guard, const ReductionOpID redop,
@@ -48,7 +48,7 @@ namespace Legion {
           const RegionUsage& dst_usage, const LogicalRegion src_region,
           const LogicalRegion dst_region, const ApEvent dst_ready,
           std::vector<PhysicalManager*>&& target_instances,
-          op::vector<op::FieldMaskMap<InstanceView> >&& target_views,
+          op::vector<op::FieldMaskMap<InstanceView>>&& target_views,
           std::vector<IndividualView*>&& source_views,
           const ApEvent precondition, const PredEvent pred_guard,
           const ReductionOpID redop, const std::vector<unsigned>& src_indexes,
@@ -94,9 +94,10 @@ namespace Legion {
       }
       static void handle_remote_copies_across(
           Deserializer& derez, AddressSpaceID previous);
-      static std::vector<CopyAcrossHelper*> create_across_helpers(
+      static CopyAcrossHelper* create_across_helper(
           const FieldMask& src_mask, const FieldMask& dst_mask,
           const std::vector<PhysicalManager*>& dst_instances,
+          const op::vector<op::FieldMaskMap<InstanceView>>& dst_views,
           const std::vector<unsigned>& src_indexes,
           const std::vector<unsigned>& dst_indexes);
       static std::vector<PhysicalManager*> convert_instances(
@@ -112,14 +113,14 @@ namespace Legion {
       const LogicalRegion dst_region;
       const ApEvent targets_ready;
       const std::vector<PhysicalManager*> target_instances;
-      const op::vector<op::FieldMaskMap<InstanceView> > target_views;
+      const op::vector<op::FieldMaskMap<InstanceView>> target_views;
       const std::vector<IndividualView*> source_views;
       const ApEvent precondition;
       const PredEvent pred_guard;
       const ReductionOpID redop;
       const std::vector<unsigned> src_indexes;
       const std::vector<unsigned> dst_indexes;
-      const std::vector<CopyAcrossHelper*> across_helpers;
+      CopyAcrossHelper* const across_helper;
       const PhysicalTraceInfo trace_info;
       const bool perfect;
     public:

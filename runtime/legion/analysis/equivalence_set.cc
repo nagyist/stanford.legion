@@ -6982,90 +6982,14 @@ namespace Legion {
       // At this point we know we're going to need an aggregator since
       // this is an across copy and we have to be doing updates
       CopyFillAggregator* across_aggregator = analysis.get_across_aggregator();
-      if (!analysis.perfect)
+      if (analysis.perfect)
       {
-        // The general case where fields don't align regardless of
-        // whether we are doing a reduction across or not
-        legion_assert(!analysis.src_indexes.empty());
-        legion_assert(!analysis.dst_indexes.empty());
-        legion_assert(
-            analysis.src_indexes.size() == analysis.dst_indexes.size());
-        legion_assert(
-            analysis.across_helpers.size() == analysis.target_instances.size());
-        // First construct a map from dst indexes to src indexes
-        std::map<unsigned, unsigned> dst_to_src;
-        for (unsigned idx = 0; idx < analysis.src_indexes.size(); idx++)
-          dst_to_src[analysis.dst_indexes[idx]] = analysis.src_indexes[idx];
-        // We want to group all the target views with their across helpers
-        // so that we can issue them in bulk
-        local::FieldMaskMap<CopyAcrossHelper> target_across;
-        // We also need to convert the target views over to source fields
-        op::vector<op::FieldMaskMap<InstanceView>> converted_target_views(
-            analysis.target_views.size());
-        for (unsigned idx = 0; idx < analysis.target_views.size(); idx++)
-        {
-          const FieldMask& dst_mask =
-              analysis.target_views[idx].get_valid_mask();
-          // Compute a tmp mask based on the dst mask
-          FieldMask source_mask;
-          int fidx = dst_mask.find_first_set();
-          while (fidx >= 0)
-          {
-            std::map<unsigned, unsigned>::const_iterator finder =
-                dst_to_src.find(fidx);
-            legion_assert(finder != dst_to_src.end());
-            source_mask.set_bit(finder->second);
-            fidx = dst_mask.find_next_set(fidx + 1);
-          }
-          // This might not be the right equivalence set for all the
-          // target instances, so filter down to the ones we apply to
-          const FieldMask overlap = src_mask & source_mask;
-          if (!overlap)
-            continue;
-          target_across.insert(analysis.across_helpers[idx], overlap);
-          for (op::FieldMaskMap<InstanceView>::const_iterator it =
-                   analysis.target_views[idx].begin();
-               it != analysis.target_views[idx].end(); it++)
-          {
-            const FieldMask converted =
-                analysis.across_helpers[idx]->convert_dst_to_src(it->second);
-            converted_target_views[idx].insert(it->first, converted);
-          }
-        }
-        legion_assert(!target_across.empty());
-        for (local::FieldMaskMap<CopyAcrossHelper>::const_iterator it =
-                 target_across.begin();
-             it != target_across.end(); it++)
-        {
-          make_instances_valid(
-              across_aggregator, nullptr /*no guard*/, &analysis,
-              true /*track events*/, expr, expr_covers, it->second,
-              analysis.target_instances, converted_target_views,
-              analysis.source_views, analysis.trace_info, true /*skip check*/,
-              analysis.redop, it->first);
-          // Only need to check for reductions if we're not reducing since
-          // the runtime prevents reductions-across with different reduction ops
-          if ((analysis.redop == 0) && !!reduction_fields)
-          {
-            const FieldMask reduction_mask = reduction_fields & it->second;
-            if (!!reduction_mask)
-              apply_reductions(
-                  analysis.target_instances, converted_target_views, expr,
-                  expr_covers, reduction_mask, across_aggregator,
-                  nullptr /*no guard*/, &analysis, true /*track events*/,
-                  analysis.trace_info, nullptr /*no applied exprs*/, it->first);
-          }
-        }
-      }
-      else
-      {
-        // Fields align when doing this copy across so use the general path
         make_instances_valid(
             across_aggregator, nullptr /*no guard*/, &analysis,
             true /*track events*/, expr, expr_covers, src_mask,
             analysis.target_instances, analysis.target_views,
             analysis.source_views, analysis.trace_info, true /*skip check*/,
-            analysis.redop);
+            analysis.redop, analysis.across_helper);
         // Only need to check for reductions if we're not reducing since
         // the runtime prevents reductions-across with different reduction ops
         if ((analysis.redop == 0) && !!reduction_fields)
@@ -7076,8 +7000,44 @@ namespace Legion {
                 analysis.target_instances, analysis.target_views, expr,
                 expr_covers, reduction_mask, across_aggregator,
                 nullptr /*no guard*/, &analysis, true /*track events*/,
-                analysis.trace_info,
-                nullptr /*no need to track applied exprs*/);
+                analysis.trace_info, nullptr /*no need to track applied exprs*/,
+                analysis.across_helper);
+        }
+      }
+      else
+      {
+        // Have to convert the targets views over to source fields
+        op::vector<op::FieldMaskMap<InstanceView>> converted_target_views(
+            analysis.target_views.size());
+        for (unsigned idx = 0; idx < converted_target_views.size(); idx++)
+        {
+          for (op::FieldMaskMap<InstanceView>::const_iterator it =
+                   analysis.target_views[idx].begin();
+               it != analysis.target_views[idx].end(); it++)
+          {
+            const FieldMask converted =
+                analysis.across_helper->convert_dst_to_src(it->second);
+            converted_target_views[idx].insert(it->first, converted);
+          }
+        }
+        make_instances_valid(
+            across_aggregator, nullptr /*no guard*/, &analysis,
+            true /*track events*/, expr, expr_covers, src_mask,
+            analysis.target_instances, converted_target_views,
+            analysis.source_views, analysis.trace_info, true /*skip check*/,
+            analysis.redop, analysis.across_helper);
+        // Only need to check for reductions if we're not reducing since
+        // the runtime prevents reductions-across with different reduction ops
+        if ((analysis.redop == 0) && !!reduction_fields)
+        {
+          const FieldMask reduction_mask = src_mask & reduction_fields;
+          if (!!reduction_mask)
+            apply_reductions(
+                analysis.target_instances, converted_target_views, expr,
+                expr_covers, reduction_mask, across_aggregator,
+                nullptr /*no guard*/, &analysis, true /*track events*/,
+                analysis.trace_info, nullptr /*no need to track applied exprs*/,
+                analysis.across_helper);
         }
       }
     }
