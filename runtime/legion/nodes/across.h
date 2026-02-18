@@ -60,7 +60,11 @@ namespace Legion {
           const FieldMask& full, const std::vector<unsigned>& src,
           const std::vector<unsigned>& dst)
         : full_mask(full), src_indexes(src), dst_indexes(dst)
-      { }
+      {
+        legion_assert(src_indexes.size() == dst_indexes.size());
+        legion_assert(std::is_sorted(src_indexes.begin(), src_indexes.end()));
+        offsets.resize(dst_indexes.size());
+      }
     public:
       const FieldMask& full_mask;
       const std::vector<unsigned>& src_indexes;

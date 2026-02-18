@@ -53,11 +53,11 @@ namespace Legion {
         target_views(target_vws), source_views(source_vws), precondition(pre),
         pred_guard(pred), redop(red), src_indexes(src_idxes),
         dst_indexes(dst_idxes),
-        across_helpers(
-            perf ? std::vector<CopyAcrossHelper*>() :
-                   create_across_helpers(
-                       src_mask, dst_mask, target_instances, src_indexes,
-                       dst_indexes)),
+        across_helper(
+            perf ? nullptr :
+                   create_across_helper(
+                       src_mask, dst_mask, target_instances, target_views,
+                       src_indexes, dst_indexes)),
         trace_info(t_info), perfect(perf), across_aggregator(nullptr)
     //--------------------------------------------------------------------------
     { }
@@ -86,11 +86,11 @@ namespace Legion {
         target_views(target_vws), source_views(source_vws), precondition(pre),
         pred_guard(pred), redop(red), src_indexes(src_idxes),
         dst_indexes(dst_idxes),
-        across_helpers(
-            perf ? std::vector<CopyAcrossHelper*>() :
-                   create_across_helpers(
-                       src_mask, dst_mask, target_instances, src_indexes,
-                       dst_indexes)),
+        across_helper(
+            perf ? nullptr :
+                   create_across_helper(
+                       src_mask, dst_mask, target_instances, target_views,
+                       src_indexes, dst_indexes)),
         trace_info(t_info), perfect(perf), across_aggregator(nullptr)
     //--------------------------------------------------------------------------
     { }
@@ -101,7 +101,8 @@ namespace Legion {
     {
       legion_assert(
           !aggregator_guard.exists() || aggregator_guard.has_triggered());
-      for (CopyAcrossHelper* const it : across_helpers) delete it;
+      if (across_helper != nullptr)
+        delete across_helper;
     }
 
     //--------------------------------------------------------------------------
@@ -407,7 +408,6 @@ namespace Legion {
       const PhysicalTraceInfo trace_info =
           PhysicalTraceInfo::unpack_trace_info(derez);
 
-      std::vector<CopyAcrossHelper*> across_helpers;
       RegionNode* dst_node = runtime->get_node(dst_handle);
       IndexSpaceExpression* dst_expr = dst_node->row_source;
       // Make sure that all our pointers are ready
@@ -458,22 +458,20 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ std::vector<CopyAcrossHelper*>
-        CopyAcrossAnalysis::create_across_helpers(
-            const FieldMask& src_mask, const FieldMask& dst_mask,
-            const std::vector<PhysicalManager*>& dst_instances,
-            const std::vector<unsigned>& src_indexes,
-            const std::vector<unsigned>& dst_indexes)
+    /*static*/ CopyAcrossHelper* CopyAcrossAnalysis::create_across_helper(
+        const FieldMask& src_mask, const FieldMask& dst_mask,
+        const std::vector<PhysicalManager*>& dst_instances,
+        const op::vector<op::FieldMaskMap<InstanceView>>& dst_views,
+        const std::vector<unsigned>& src_indexes,
+        const std::vector<unsigned>& dst_indexes)
     //--------------------------------------------------------------------------
     {
       legion_assert(!dst_instances.empty());
-      std::vector<CopyAcrossHelper*> result(dst_instances.size());
+      CopyAcrossHelper* result =
+          new CopyAcrossHelper(src_mask, src_indexes, dst_indexes);
       for (unsigned idx = 0; idx < dst_instances.size(); idx++)
-      {
-        result[idx] = new CopyAcrossHelper(src_mask, src_indexes, dst_indexes);
         dst_instances[idx]->initialize_across_helper(
-            result[idx], dst_mask, src_indexes, dst_indexes);
-      }
+            result, dst_views[idx].get_valid_mask(), src_indexes, dst_indexes);
       return result;
     }
 

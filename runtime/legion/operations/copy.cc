@@ -2272,7 +2272,7 @@ namespace Legion {
         return ApEvent::NO_AP_EVENT;
       // Perform the copies/reductions across
       InnerContext* context = find_physical_context(dst_index);
-      op::vector<op::FieldMaskMap<InstanceView> > target_views;
+      op::vector<op::FieldMaskMap<InstanceView>> target_views;
       context->convert_analysis_views(dst_targets, target_views);
       if (!src_targets.empty())
       {
@@ -2362,6 +2362,22 @@ namespace Legion {
           continue;
         perfect = false;
         break;
+      }
+      if (!perfect)
+      {
+        // Make sure the source indexes are sorted if we're not perfect
+        // which will be necessary for the copy-across helper
+        std::vector<std::pair<unsigned, unsigned>> pair_indexes;
+        pair_indexes.reserve(src_indexes.size());
+        for (unsigned idx = 0; idx < src_indexes.size(); idx++)
+          pair_indexes.emplace_back(
+              std::make_pair(src_indexes[idx], dst_indexes[idx]));
+        std::sort(pair_indexes.begin(), pair_indexes.end());
+        for (unsigned idx = 0; idx < pair_indexes.size(); idx++)
+        {
+          src_indexes[idx] = pair_indexes[idx].first;
+          dst_indexes[idx] = pair_indexes[idx].second;
+        }
       }
       std::vector<IndividualView*> source_views;
       if (!sources.empty())
@@ -3239,7 +3255,7 @@ namespace Legion {
           continue;
         ProjectionFunction* function =
             runtime->find_projection_function(src_requirements[idx].projection);
-        std::map<unsigned, std::vector<PointwiseDependence> >::const_iterator
+        std::map<unsigned, std::vector<PointwiseDependence>>::const_iterator
             finder = pointwise_dependences.find(idx);
         function->project_points(
             this, idx, src_requirements[idx], index_domain, projection_points,
@@ -3253,7 +3269,7 @@ namespace Legion {
           continue;
         ProjectionFunction* function =
             runtime->find_projection_function(dst_requirements[idx].projection);
-        std::map<unsigned, std::vector<PointwiseDependence> >::const_iterator
+        std::map<unsigned, std::vector<PointwiseDependence>>::const_iterator
             finder = pointwise_dependences.find(offset + idx);
         function->project_points(
             this, offset + idx, dst_requirements[idx], index_domain,
@@ -3271,7 +3287,7 @@ namespace Legion {
             continue;
           ProjectionFunction* function = runtime->find_projection_function(
               src_indirect_requirements[idx].projection);
-          std::map<unsigned, std::vector<PointwiseDependence> >::const_iterator
+          std::map<unsigned, std::vector<PointwiseDependence>>::const_iterator
               finder = pointwise_dependences.find(offset + idx);
           function->project_points(
               this, offset + idx, src_indirect_requirements[idx], index_domain,
@@ -3291,7 +3307,7 @@ namespace Legion {
             continue;
           ProjectionFunction* function = runtime->find_projection_function(
               dst_indirect_requirements[idx].projection);
-          std::map<unsigned, std::vector<PointwiseDependence> >::const_iterator
+          std::map<unsigned, std::vector<PointwiseDependence>>::const_iterator
               finder = pointwise_dependences.find(offset + idx);
           function->project_points(
               this, offset + idx, dst_indirect_requirements[idx], index_domain,
@@ -3570,7 +3586,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void IndexCopyOp::finish_check_point_requirements(
-        std::map<unsigned, std::vector<std::pair<DomainPoint, Domain> > >&
+        std::map<unsigned, std::vector<std::pair<DomainPoint, Domain>>>&
             point_domains)
     //--------------------------------------------------------------------------
     {
@@ -3579,7 +3595,7 @@ namespace Legion {
       // against all the points in the second region requirements
       for (const std::pair<unsigned, unsigned>& rit : interfering_requirements)
       {
-        std::map<unsigned, std::vector<std::pair<DomainPoint, Domain> > >::
+        std::map<unsigned, std::vector<std::pair<DomainPoint, Domain>>>::
             const_iterator finder = point_domains.find(rit.first);
         legion_assert(finder != point_domains.end());
         for (PointCopyOp* pit : points)
@@ -3660,11 +3676,11 @@ namespace Legion {
       if (interfering_requirements.empty())
         return;
       // Get all of our local point domains
-      std::map<unsigned, std::vector<std::pair<DomainPoint, Domain> > >
+      std::map<unsigned, std::vector<std::pair<DomainPoint, Domain>>>
           point_domains;
       for (const std::pair<unsigned, unsigned>& rit : interfering_requirements)
       {
-        std::vector<std::pair<DomainPoint, Domain> >& domains =
+        std::vector<std::pair<DomainPoint, Domain>>& domains =
             point_domains[rit.first];
         // Already found it for this region requirements
         if (!domains.empty())
@@ -4404,7 +4420,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ReplIndexCopyOp::finish_check_point_requirements(
-        std::map<unsigned, std::vector<std::pair<DomainPoint, Domain> > >&
+        std::map<unsigned, std::vector<std::pair<DomainPoint, Domain>>>&
             point_domains)
     //--------------------------------------------------------------------------
     {

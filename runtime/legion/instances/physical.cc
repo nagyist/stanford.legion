@@ -2021,31 +2021,31 @@ namespace Legion {
       if (instance_ready.exists() && !instance_ready.has_triggered())
         instance_ready.wait();
       legion_assert(src_indexes.size() == dst_indexes.size());
+      legion_assert(helper->offsets.size() == dst_indexes.size());
       std::vector<CopySrcDstField> dst_fields;
       layout->compute_copy_offsets(dst_mask, instance, dst_fields);
-      legion_assert(dst_fields.size() == dst_indexes.size());
-      helper->offsets.resize(dst_fields.size());
-      // We've got the offsets compressed based on their destination mask
-      // order, now we need to translate them to their source mask order
-      // Figure out the permutation from destination mask ordering to
-      // source mask ordering.
-      // First let's figure out the order of the source indexes
-      std::vector<unsigned> src_order(src_indexes.size());
-      std::map<unsigned, unsigned> translate_map;
-      for (unsigned idx = 0; idx < src_indexes.size(); idx++)
-        translate_map[src_indexes[idx]] = idx;
-      unsigned index = 0;
-      for (const std::pair<const unsigned, unsigned>& it : translate_map)
-        src_order[it.second] = index++;
-      // Now we can translate the destination indexes
-      translate_map.clear();
-      for (unsigned idx = 0; idx < dst_indexes.size(); idx++)
-        translate_map[dst_indexes[idx]] = idx;
-      index = 0;
-      for (const std::pair<const unsigned, unsigned>& it : translate_map)
+      // This is a double translation that we need to do, for each
+      // field in the destination mask, we need to find out its index
+      // in the dst_indexes and then use that same index in the src_indexes
+      // to specify where to put the CopySrcDstField data
+      const unsigned pop_count = dst_mask.pop_count();
+      int next_start = 0;
+      for (unsigned idx = 0; idx < pop_count; idx++)
       {
-        unsigned src_index = src_order[it.second];
-        helper->offsets[src_index] = dst_fields[index++];
+        const int index = dst_mask.find_next_set(next_start);
+        legion_assert(index >= 0);
+        const unsigned dst_index = index;
+        // Now we need to find the location of index in the dst_indexes
+        for (unsigned loc = 0; loc < dst_indexes.size(); loc++)
+        {
+          if (dst_index != dst_indexes[loc])
+            continue;
+          helper->offsets[loc] = dst_fields[idx];
+          next_start = index + 1;
+          break;
+        }
+        // Should have been found during the traversal, if not this will fail
+        legion_assert(next_start == (index + 1));
       }
     }
 
