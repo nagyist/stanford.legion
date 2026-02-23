@@ -135,6 +135,10 @@ legion_network_cxx_tests = [
     ['test/bug954/bug954', ['-ll:rsize', '1024']],
 ]
 
+legion_nonetwork_cxx_tests = [
+    ['test/empty_futures/empty_futures', ['-ll:cpu', '4']],
+]
+
 legion_openmp_cxx_tests = [
     # Examples
     ['examples/omp_saxpy/omp_saxpy', ['-ll:ocpu', '1']],
@@ -340,6 +344,11 @@ def run_test_legion_network_cxx(launcher, root_dir, tmp_dir, bin_dir, env, threa
     flags = ['-logfile', 'out_%.log']
     flags.extend(get_default_args(env))
     run_cxx(legion_network_cxx_tests, flags, launcher, root_dir, bin_dir, env, thread_count, timelimit)
+
+def run_test_legion_nonetwork_cxx(launcher, root_dir, tmp_dir, bin_dir, env, thread_count, timelimit):
+    flags = ['-logfile', 'out_%.log']
+    flags.extend(get_default_args(env))
+    run_cxx(legion_nonetwork_cxx_tests, flags, launcher, root_dir, bin_dir, env, thread_count, timelimit)
 
 def run_test_legion_openmp_cxx(launcher, root_dir, tmp_dir, bin_dir, env, thread_count, timelimit):
     flags = ['-logfile', 'out_%.log']
@@ -1265,6 +1274,8 @@ def run_tests(test_modules=None,
                     run_test_legion_prof_cxx(launcher, root_dir, tmp_dir, bin_dir, env, thread_count, timelimit)
                 if networks:
                     run_test_legion_network_cxx(launcher, root_dir, tmp_dir, bin_dir, env, thread_count, timelimit)
+                else:
+                    run_test_legion_nonetwork_cxx(launcher, root_dir, tmp_dir, bin_dir, env, thread_count, timelimit)
                 if use_openmp:
                     run_test_legion_openmp_cxx(launcher, root_dir, tmp_dir, bin_dir, env, thread_count, timelimit)
                 if use_kokkos:
