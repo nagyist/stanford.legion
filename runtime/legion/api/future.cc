@@ -973,8 +973,16 @@ namespace Legion {
       // Check to see if we have it
       AutoLock f_lock(future_lock);
       // Handle the case where we have a future with no payload
-      if (!empty.load() && instances.empty())
+      if (future_size_set && (future_size == 0))
+      {
+        if (empty.load() && !future_complete.exists())
+        {
+          future_complete = Runtime::create_ap_user_event(nullptr);
+          if (!subscription_event.exists())
+            subscribe(false /*need lock*/);
+        }
         return future_complete;
+      }
       std::map<Memory, FutureInstanceTracker>::const_iterator finder =
           instances.find(target);
       if (finder != instances.end())

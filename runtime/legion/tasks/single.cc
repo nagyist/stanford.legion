@@ -248,8 +248,10 @@ namespace Legion {
         {
           derez.deserialize(future_memories[idx]);
           // Safe to block indefinitely here for unbounded pools
-          futures[idx].impl->request_application_instance(
-              future_memories[idx], this, nullptr /*safe_for_unbounded_pools*/);
+          if (future_memories[idx].exists())
+            futures[idx].impl->request_application_instance(
+                future_memories[idx], this,
+                nullptr /*safe_for_unbounded_pools*/);
         }
         size_t num_task_requests;
         derez.deserialize(num_task_requests);
@@ -594,8 +596,8 @@ namespace Legion {
       if (!futures.empty())
       {
         future_memories.swap(output.future_locations);
-        if (futures.size() < future_memories.size())
-          future_memories.resize(futures.size());
+        if (futures.size() != future_memories.size())
+          future_memories.resize(futures.size(), Memory::NO_MEMORY);
         // Check to make sure that they are all on the same address
         // space as the target processor(s)
         const AddressSpaceID target_space = this->target_proc.address_space();
@@ -624,25 +626,6 @@ namespace Legion {
           // Safe to block here indefinitely waiting for unbounded pools
           futures[idx].impl->request_application_instance(
               future_memories[idx], this, nullptr /*safe_for_unbounded_pools*/);
-        }
-        // Handle any unmapped futures too
-        Memory target_memory = Memory::NO_MEMORY;
-        for (unsigned idx = future_memories.size(); idx < futures.size(); idx++)
-        {
-          if (futures[idx].impl == nullptr)
-            continue;
-          if (!target_memory.exists())
-          {
-            if (target_space != runtime->address_space)
-              target_memory = runtime->find_local_memory(
-                  this->target_proc, Memory::SYSTEM_MEM);
-            else
-              target_memory = runtime->runtime_system_memory;
-          }
-          future_memories.emplace_back(target_memory);
-          // Safe to block here indefinitely waiting for unbounded pools
-          futures[idx].impl->request_application_instance(
-              target_memory, this, nullptr /*safe_for_unbounded_pools*/);
         }
       }
       // Sort out any profiling requests that we need to perform
@@ -1296,9 +1279,10 @@ namespace Legion {
           if (futures[idx].impl == nullptr)
             continue;
           const Memory memory = future_memories[idx];
-          // Safe to block here indefinitely waiting for unbounded pools
-          futures[idx].impl->request_application_instance(
-              memory, this, nullptr /*safe_for_unbounded_pools*/);
+          if (memory.exists())
+            // Safe to block here indefinitely waiting for unbounded pools
+            futures[idx].impl->request_application_instance(
+                memory, this, nullptr /*safe_for_unbounded_pools*/);
         }
       }
       if (!single_task_termination.exists())
@@ -3130,17 +3114,11 @@ namespace Legion {
           if (impl == nullptr)
             continue;
           ApEvent ready;
-          if (idx < future_memories.size())
-          {
-            if (future_memories[idx].exists())
-              ready = impl->find_application_instance_ready(
-                  future_memories[idx], this);
-            else  // skip requesting any futures mapped to NO_MEMORY
-              continue;
-          }
-          else
+          if ((idx < future_memories.size()) && future_memories[idx].exists())
             ready = impl->find_application_instance_ready(
-                runtime->runtime_system_memory, this);
+                future_memories[idx], this);
+          else
+            ready = impl->get_complete_event();
           if (ready.exists())
             wait_on_events.insert(ready);
         }
