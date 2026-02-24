@@ -1221,7 +1221,8 @@ impl StateDataSource {
 
         let access_string = if let Some(access) = expr {
             // We can only be dense if we're SOA layout or there is only one field in the instance
-            let soa = inst.fields.len() == 1
+            // Assume an instance without any fields is also "soa"
+            let soa = inst.fields.len() <= 1
                 || *inst.dim_order.last_key_value().unwrap().1 == DimKind::DimF;
             let access_space = self.state.index_spaces.get(&access).unwrap();
             let access_volume = access_space.volume();
