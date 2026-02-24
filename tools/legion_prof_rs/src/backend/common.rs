@@ -857,6 +857,15 @@ impl fmt::Display for ChanEntryFieldsPretty<'_> {
                     write!(f, ", ")?;
                 }
             }
+        } else {
+            // No field space so just render the field IDs
+            let mut i = field_ids.iter().peekable();
+            while let Some(fid) = i.next() {
+                write!(f, "<{}>", fid.0)?;
+                if i.peek().is_some() {
+                    write!(f, ", ")?;
+                }
+            }
         }
         Ok(())
     }
