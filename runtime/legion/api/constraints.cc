@@ -33,7 +33,7 @@ namespace Legion {
           // Can entail for <, <=, !=
           if ((eq2 == LEGION_LT_EK) && (v1 <= v2))  // < v2
             return true;
-          if ((eq2 == LEGION_LE_EK) && (v1 < v2))  // <= v2
+          if ((eq2 == LEGION_LE_EK) && (v1 <= v2))  // <= v2
             return true;
           if ((eq2 == LEGION_NE_EK) && (v1 <= v2))  // != v2
             return true;
@@ -55,7 +55,7 @@ namespace Legion {
           // Can entail for >, >=, !=
           if ((eq2 == LEGION_GT_EK) && (v1 >= v2))  // > v2
             return true;
-          if ((eq2 == LEGION_GE_EK) && (v1 > v2))  // >= v2
+          if ((eq2 == LEGION_GE_EK) && (v1 >= v2))  // >= v2
             return true;
           if ((eq2 == LEGION_NE_EK) && (v1 >= v2))  // != v2
             return true;
@@ -668,10 +668,6 @@ namespace Legion {
     // Only conflicts if we both have non-zero redops that don't equal
     if ((redop != other.redop) && (redop != 0) && (other.redop != 0))
       return true;
-    if (max_pieces != other.max_pieces)
-      return true;
-    if (max_overhead != other.max_overhead)
-      return true;
     // No access never causes a conflict
     // We'll test for exactness inside the runtime
     return false;
@@ -881,15 +877,6 @@ namespace Legion {
       return false;
     if (field_set.size() < other.field_set.size())
       return false;  // can't have all the fields
-    // If the other can have any fields then we can just test directly
-    if (field_set.empty() || other.field_set.empty())
-    {
-      if (other.contiguous && !contiguous)
-        return false;
-      if (other.inorder && !inorder)
-        return false;
-      return true;
-    }
     // Find the indexes of the other fields in our set
     std::vector<unsigned> field_indexes(other.field_set.size());
     for (unsigned local_idx = 0; local_idx < other.field_set.size();
@@ -909,6 +896,9 @@ namespace Legion {
       if (!found)
         return false;  // can't entail if we don't have the field
     }
+    // A single field is trivially contiguous and inorder
+    if (other.field_set.size() <= 1)
+      return true;
     if (other.contiguous)
     {
       if (other.inorder)
@@ -979,10 +969,12 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     // If they need inorder and we're not that is bad
-    if (!inorder && other.inorder)
+    // Skip this check for single-field constraints where inorder is trivial
+    if (!inorder && other.inorder && other.field_set.size() > 1)
       return true;
     // If they need contiguous and we're not that is bad
-    if (!contiguous && other.contiguous)
+    // Skip this check for single-field constraints where contiguous is trivial
+    if (!contiguous && other.contiguous && other.field_set.size() > 1)
       return true;
     if (other.field_set.empty())
       return false;
@@ -1013,7 +1005,7 @@ namespace Legion {
       {
         // We must have their fields inorder but not contiguous
         unsigned other_index = 0;
-        for (unsigned idx = 0; field_set.size(); idx++)
+        for (unsigned idx = 0; idx < field_set.size(); idx++)
         {
           if (other.field_set[other_index] == field_set[idx])
           {
@@ -1041,7 +1033,8 @@ namespace Legion {
         // If it doesn't have enough space that is bad
         if ((our_index + other_fields.size()) > field_set.size())
           return true;
-        for (/*nothing*/; our_index < other_fields.size(); our_index++)
+        unsigned end_index = our_index + other_fields.size();
+        for (/*nothing*/; our_index < end_index; our_index++)
           if (other_fields.find(field_set[our_index]) == other_fields.end())
             return true;
       }
@@ -1137,15 +1130,14 @@ namespace Legion {
       if (!found)
         return false;  // if we don't have the dimension can't entail
     }
-    // We don't even have enough fields so no way we can entail
-
     if (other.contiguous)
     {
       // If we're not contiguous we can't entail the other
       if (!contiguous)
         return false;
       // See if the indexes are contiguous
-      std::set<unsigned> sorted_indexes(dim_indexes.begin(), dim_indexes.end());
+      std::set<unsigned> sorted_indexes(
+          dim_indexes.begin(), dim_indexes.begin() + local_idx);
       int previous = -1;
       for (const unsigned& index : sorted_indexes)
       {
