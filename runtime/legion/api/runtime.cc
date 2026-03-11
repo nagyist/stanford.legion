@@ -4178,19 +4178,23 @@ namespace Legion {
 
   //--------------------------------------------------------------------------
   /*static*/ int Runtime::start(
-      int argc, char** argv, bool background, bool default_mapper, bool filter)
+      int argc, char** argv, bool background, bool default_mapper, bool filter,
+      bool init_network, bool configure_machine)
   //--------------------------------------------------------------------------
   {
     return Internal::Runtime::start(
-        argc, argv, background, default_mapper, filter);
+        argc, argv, background, default_mapper, filter, init_network,
+        configure_machine);
   }
 
   //--------------------------------------------------------------------------
   /*static*/ void Runtime::initialize(
-      int* argc, char*** argv, bool filter, bool parse)
+      int* argc, char*** argv, bool filter, bool parse, bool init_network,
+      bool configure_machine)
   //--------------------------------------------------------------------------
   {
-    Internal::Runtime::initialize(argc, argv, parse, filter);
+    Internal::Runtime::initialize(
+        argc, argv, parse, filter, init_network, configure_machine);
   }
 
   //--------------------------------------------------------------------------

@@ -4603,11 +4603,19 @@ namespace Legion {
      * @param supply_default_mapper whether the runtime should initialize
      *              the default mapper for use by the application
      * @param filter filter legion and realm command line arguments
+     * @param realm_initialize_network invoke Realm's network initialization
+     * @param realm_configure_machine finish configuring the Realm machine model
+     *              from the command line if not previously configured. If you
+     *              set this to false then you must ensure that the Realm
+     *              machine model is fully configured before invoking the
+     *              Legion start method.
      * @return only if running in background, otherwise never
      */
     static int start(
         int argc, char** argv, bool background = false,
-        bool supply_default_mapper = true, bool filter = false);
+        bool supply_default_mapper = true, bool filter = false,
+        bool realm_initialize_network = true,
+        bool realm_configure_machine = true);
 
     /**
      * This 'initialize' method is an optional method that provides
@@ -4623,9 +4631,16 @@ namespace Legion {
      * @param filter remove any legion and realm command line arguments
      * @param parse parse any runtime command line arguments during this call
      *              (if set to false parsing happens during start method)
+     * @param realm_initialize_network invoke Realm's network initialization
+     * @param realm_configure_machine configure the Realm machine model
+     *              from the command line if not previously configured. Note
+     *              that if you set this to false you must do any Realm
+     *              machine model configuration calls yourself.
      */
     static void initialize(
-        int* argc, char*** argv, bool filter = false, bool parse = true);
+        int* argc, char*** argv, bool filter = false, bool parse = true,
+        bool realm_initialize_network = true,
+        bool realm_create_configure_machine = true);
 
     /**
      * Blocking call to wait for the runtime to shutdown when
