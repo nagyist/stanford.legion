@@ -10803,7 +10803,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     /*static*/ int Runtime::start(
         int argc, char** argv, bool background, bool supply_default_mapper,
-        bool filter)
+        bool filter, bool init_network, bool configure_machine)
     //--------------------------------------------------------------------------
     {
       // Some static asserts that need to hold true for the runtime to work
@@ -10854,12 +10854,14 @@ namespace Legion {
       // their values as they might be changed by GASNet or MPI or whatever.
       // Note that the logger isn't initialized until after this call returns
       // which means any logging that occurs before this has undefined behavior.
-      const LegionConfiguration& config =
-          initialize(&argc, &argv, !runtime_cmdline_parsed, filter);
+      const LegionConfiguration& config = initialize(
+          &argc, &argv, !runtime_cmdline_parsed, filter, init_network,
+          configure_machine);
       RealmRuntime realm = RealmRuntime::get_runtime();
       // Finish configuring the machine so we can start querying the machine
       // model and setting up our data structures before we start Realm
-      realm.finish_configure();
+      if (configure_machine)
+        realm.finish_configure();
 
       // Perform any waits that the user requested before starting
       if (config.delay_start > 0)
@@ -11121,15 +11123,18 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ const Runtime::LegionConfiguration& Runtime::initialize(
-        int* argc, char*** argv, bool parse, bool filter)
+        int* argc, char*** argv, bool parse, bool filter, bool init_network,
+        bool configure_machine)
     //--------------------------------------------------------------------------
     {
       static LegionConfiguration config;
       RealmRuntime realm = RealmRuntime::get_runtime();
       if (!runtime_initialized)
       {
-        legion_no_skip_assert(realm.network_init(argc, argv));
-        legion_no_skip_assert(realm.create_configs(*argc, *argv));
+        if (init_network)
+          legion_no_skip_assert(realm.network_init(argc, argv));
+        if (configure_machine)
+          legion_no_skip_assert(realm.create_configs(*argc, *argv));
         runtime_initialized = true;
       }
       if (runtime_cmdline_parsed || !parse)
@@ -11186,7 +11191,8 @@ namespace Legion {
       legion_assert(num_args > 0);  // should always have a binary name
       cmdline.reserve(cmdline.size() + num_args);
       for (unsigned i = 0; i < num_args; i++) cmdline.emplace_back((*argv)[i]);
-      realm.parse_command_line(cmdline, filter);
+      if (configure_machine)
+        realm.parse_command_line(cmdline, filter);
       // We use the binary name as the demarcation between the default
       // arguments and the command line arguments, note that it's location
       // could have changed by the call realm.parse_command_line if

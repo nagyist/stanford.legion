@@ -1599,10 +1599,12 @@ namespace Legion {
     public:
       // Static methods for start-up and callback phases
       static int start(
-          int argc, char** argv, bool background, bool def_mapper, bool filter);
+          int argc, char** argv, bool background, bool def_mapper, bool filter,
+          bool init_network, bool configure_machine);
       static void register_builtin_reduction_operators(void);
       static const LegionConfiguration& initialize(
-          int* argc, char*** argv, bool parse, bool filter);
+          int* argc, char*** argv, bool parse, bool filter, bool init_network,
+          bool configure_machine);
       static unsigned initialize_outstanding_top_level_tasks(
           AddressSpaceID local_space, size_t total_spaces, unsigned radix);
       static void perform_slow_config_checks(const LegionConfiguration& config);
