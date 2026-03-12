@@ -559,6 +559,12 @@ namespace Legion {
       repl_ctx->add_base_gc_ref(SINGLE_TASK_REF);
       // Save the execution context early since we'll need it
       execution_context = repl_ctx;
+      // Implicit don't have variants so we have to set these properties
+      // here, implicit top-level tasks are never leaf or inner tasks
+      is_leaf_result = false;
+      leaf_cached = true;
+      is_inner_result = false;
+      inner_cached = true;
       // Wait until all the other shards are ready too
       const RtEvent wait_on = shard_manager->complete_startup_initialization();
       if (!wait_on.has_triggered())
