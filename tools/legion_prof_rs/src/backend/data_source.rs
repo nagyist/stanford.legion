@@ -2277,12 +2277,9 @@ impl StateDataSource {
                 Field::String(ispace),
                 None,
             ));
-
-            let fspace = self
-                .state
-                .field_spaces
-                .get(&inst.fspace_id.unwrap())
-                .unwrap();
+        }
+        if let Some(fspace_id) = inst.fspace_id {
+            let fspace = self.state.field_spaces.get(&fspace_id).unwrap();
             let fspace_name = format!("{}", FSpaceShort(fspace));
             result.push(ItemField(
                 self.fields.inst_fspace,
