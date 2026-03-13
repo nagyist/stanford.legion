@@ -285,8 +285,8 @@ namespace Legion {
       // For replication of this task
       ShardManager* shard_manager;
     protected:
-      mutable bool leaf_cached, is_leaf_result;
-      mutable bool inner_cached, is_inner_result;
+      mutable std::atomic<bool> leaf_cached, is_leaf_result;
+      mutable std::atomic<bool> inner_cached, is_inner_result;
     protected:
       std::vector<ProfilingMeasurementID> task_profiling_requests;
       std::vector<ProfilingMeasurementID> copy_profiling_requests;
