@@ -1460,6 +1460,12 @@ namespace Legion {
             true /*implicit*/);
       execution_context = inner_ctx;
       execution_context->add_base_gc_ref(SINGLE_TASK_REF);
+      // Implicit don't have variants so we have to set these properties
+      // here, implicit top-level tasks are never leaf or inner tasks
+      is_leaf_result = false;
+      leaf_cached = true;
+      is_inner_result = false;
+      inner_cached = true;
       return inner_ctx;
     }
 
