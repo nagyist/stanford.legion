@@ -261,7 +261,7 @@ namespace Legion {
       if (finder != candidate_partitions.end())
       {
         // Update the score using exponentially weighted moving average
-        finder->second.first = std::pow(
+        finder->second.first = pow_int(
                                    CHANGE_REFINEMENT_RETURN_WEIGHT,
                                    (total_traversals - finder->second.second)) *
                                    finder->second.first +
@@ -427,7 +427,7 @@ namespace Legion {
       if (finder != candidate_projections.end())
       {
         // Update the score using exponentially weighted moving average
-        finder->second.first = std::pow(
+        finder->second.first = pow_int(
                                    CHANGE_REFINEMENT_RETURN_WEIGHT,
                                    (total_traversals - finder->second.second)) *
                                    finder->second.first +
@@ -528,7 +528,7 @@ namespace Legion {
         if (it.second.second == total_traversals)
           continue;
         // Recompute the score before comparing
-        it.second.first = std::pow(
+        it.second.first = pow_int(
                               CHANGE_REFINEMENT_RETURN_WEIGHT,
                               (total_traversals - it.second.second)) *
                           it.second.first;
@@ -543,7 +543,7 @@ namespace Legion {
         if (it.second.second == total_traversals)
           continue;
         // Recompute the score before comparing
-        it.second.first = std::pow(
+        it.second.first = pow_int(
                               CHANGE_REFINEMENT_RETURN_WEIGHT,
                               (total_traversals - it.second.second)) *
                           it.second.first;
@@ -852,16 +852,21 @@ namespace Legion {
         if (refined_projection == nullptr)
         {
           // Children are still the refinement
-          children_score = 1.0;
+          children_score = pow_int(
+                               CHANGE_REFINEMENT_RETURN_WEIGHT,
+                               (total_traversals - children_last)) *
+                               children_score +
+                           1.0;
           children_last = total_traversals;
         }
         else
         {
           // See if we want to change refinement to the children
-          children_score = std::pow(
+          children_score = pow_int(
                                CHANGE_REFINEMENT_RETURN_WEIGHT,
                                (total_traversals - children_last)) *
-                           children_score;
+                               children_score +
+                           1.0;
           // Check to see if we've changed epochs
           const uint64_t previous_epoch =
               children_last / CHANGE_REFINEMENT_RETURN_COUNT;
@@ -932,7 +937,7 @@ namespace Legion {
       if (finder != candidate_projections.end())
       {
         // Update the score using exponentially weighted moving average
-        finder->second.first = std::pow(
+        finder->second.first = pow_int(
                                    CHANGE_REFINEMENT_RETURN_WEIGHT,
                                    (total_traversals - finder->second.second)) *
                                    finder->second.first +
@@ -1059,7 +1064,7 @@ namespace Legion {
       if (children_last != total_traversals)
       {
         // Recompute the children score and compare it
-        children_score = std::pow(
+        children_score = pow_int(
                              CHANGE_REFINEMENT_RETURN_WEIGHT,
                              (total_traversals - children_last)) *
                          children_score;
@@ -1074,7 +1079,7 @@ namespace Legion {
         if (it.second.second == total_traversals)
           continue;
         // Recompute the score before comparing
-        it.second.first = std::pow(
+        it.second.first = pow_int(
                               CHANGE_REFINEMENT_RETURN_WEIGHT,
                               (total_traversals - it.second.second)) *
                           it.second.first;
@@ -1099,7 +1104,7 @@ namespace Legion {
           if (finder == candidate_projections.end())
             return true;
           double total_candidates =
-              (children_score >= 0.0) ? 1 : 0 + candidate_projections.size();
+              ((children_score >= 0.0) ? 1 : 0) + candidate_projections.size();
           double hysteresis = std::sqrt(total_candidates);
           return ((finder->second.first * hysteresis) < score);
         }
