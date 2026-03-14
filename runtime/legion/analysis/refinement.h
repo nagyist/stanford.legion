@@ -72,6 +72,19 @@ namespace Legion {
       // This is the timeout for refinements where we will clear out all
       // candidate refinements and reset the state to look again
       static constexpr uint64_t CHANGE_REFINEMENT_TIMEOUT = 256;
+    protected:
+      static inline double pow_int(double base, uint64_t exp)
+      {
+        double result = 1.0;
+        while (exp > 0)
+        {
+          if (exp & 1)
+            result *= base;
+          base *= base;
+          exp >>= 1;
+        }
+        return result;
+      }
     };
 
     /**
