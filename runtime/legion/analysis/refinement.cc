@@ -131,7 +131,7 @@ namespace Legion {
       // We saw an entire epoch of accesses directly to this region
       // without a single intervening traversal or projection so
       // this meets the test for coarsening back to this region
-      invalidate_unused_candidates();
+      invalidate_all_candidates();
       // Invalidate our current refinement
       if (refined_child != nullptr)
       {
