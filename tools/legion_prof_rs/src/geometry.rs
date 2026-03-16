@@ -3,7 +3,7 @@ use std::num::NonZeroU64;
 
 use serde::Serialize;
 
-use crate::state::IPartID;
+use crate::state::{IPartID, NodeID};
 
 pub type Coord = i64;
 
@@ -139,6 +139,7 @@ pub struct ISpace {
     pub name: Option<String>,
     pub parent: Option<IPartID>,
     pub size: Option<ISpaceSize>,
+    first_node: Option<NodeID>,
 }
 
 impl ISpace {
@@ -150,6 +151,7 @@ impl ISpace {
             name: None,
             parent: None,
             size: None,
+            first_node: None,
         }
     }
 
@@ -157,12 +159,16 @@ impl ISpace {
     // sparse instance. In this case the bounds will NOT be
     // accurate. But we don't use bounds in such cases anyway since we
     // refer to the dense/sparse sizes.
-    pub fn set_point(&mut self, dim: u32, values: &[Coord]) -> &mut Self {
-        let new_point = Point::new(values[0..(dim as usize)].to_owned());
-        // Check to see if we already have it
-        if self.points.contains(&Bounds::Point(new_point.clone())) {
-            return self;
+    pub fn set_point(&mut self, dim: u32, values: &[Coord], node: NodeID) -> &mut Self {
+        // Only need to record geometry from one node because we trust that Realm has done its job
+        if let Some(first) = self.first_node {
+            if first != node {
+                return self;
+            }
+        } else {
+            self.first_node = Some(node);
         }
+        let new_point = Point::new(values[0..(dim as usize)].to_owned());
         // Update the bounds if necessary
         self.bounds = match &self.bounds {
             Bounds::Rect(rect) => Bounds::Rect(rect.union_bbox_point(&new_point)),
@@ -174,15 +180,25 @@ impl ISpace {
         self.points.push(Bounds::Point(new_point));
         self
     }
-    pub fn set_rect(&mut self, dim: u32, values: &[Coord], max_dim: i32) -> &mut Self {
+    pub fn set_rect(
+        &mut self,
+        dim: u32,
+        values: &[Coord],
+        max_dim: i32,
+        node: NodeID,
+    ) -> &mut Self {
+        // Only need to record geometry from one node because we trust that Realm has done its job
+        if let Some(first) = self.first_node {
+            if first != node {
+                return self;
+            }
+        } else {
+            self.first_node = Some(node);
+        }
         let new_rect = Rect::new(
             Point::new(values[0..(dim as usize)].to_owned()),
             Point::new(values[(max_dim as usize)..(max_dim as usize) + (dim as usize)].to_owned()),
         );
-        // Check to see if we already have it
-        if self.points.contains(&Bounds::Rect(new_rect.clone())) {
-            return self;
-        }
         // Update the bounds if necessary
         self.bounds = match &self.bounds {
             Bounds::Rect(rect) => Bounds::Rect(rect.union_bbox_rect(&new_rect)),
@@ -977,13 +993,13 @@ mod tests {
             let mut ispace = new_ispace(id);
             // set_rect takes: dim, values slice, max_dim
             // values slice format: [lo_coords..., hi_coords...]
-            ispace.set_rect(1, &[lo, hi], 1);
+            ispace.set_rect(1, &[lo, hi], 1, NodeID(0));
             ispace
         }
 
         fn ispace_with_rect_2d(id: u64, lo_x: i64, lo_y: i64, hi_x: i64, hi_y: i64) -> ISpace {
             let mut ispace = new_ispace(id);
-            ispace.set_rect(2, &[lo_x, lo_y, hi_x, hi_y], 2);
+            ispace.set_rect(2, &[lo_x, lo_y, hi_x, hi_y], 2, NodeID(0));
             ispace
         }
 
@@ -997,26 +1013,26 @@ mod tests {
             hi_z: i64,
         ) -> ISpace {
             let mut ispace = new_ispace(id);
-            ispace.set_rect(3, &[lo_x, lo_y, lo_z, hi_x, hi_y, hi_z], 3);
+            ispace.set_rect(3, &[lo_x, lo_y, lo_z, hi_x, hi_y, hi_z], 3, NodeID(0));
             ispace
         }
 
         // Helper to create an ISpace with a single point
         fn ispace_with_point_1d(id: u64, x: i64) -> ISpace {
             let mut ispace = new_ispace(id);
-            ispace.set_point(1, &[x]);
+            ispace.set_point(1, &[x], NodeID(0));
             ispace
         }
 
         fn ispace_with_point_2d(id: u64, x: i64, y: i64) -> ISpace {
             let mut ispace = new_ispace(id);
-            ispace.set_point(2, &[x, y]);
+            ispace.set_point(2, &[x, y], NodeID(0));
             ispace
         }
 
         fn ispace_with_point_3d(id: u64, x: i64, y: i64, z: i64) -> ISpace {
             let mut ispace = new_ispace(id);
-            ispace.set_point(3, &[x, y, z]);
+            ispace.set_point(3, &[x, y, z], NodeID(0));
             ispace
         }
 
@@ -1041,8 +1057,8 @@ mod tests {
             fn test_ispace_volume_1d_multiple_rects() {
                 let mut ispace = new_ispace(1);
                 // Two disjoint rectangles: [0,4] and [10,14]
-                ispace.set_rect(1, &[0, 4], 1);
-                ispace.set_rect(1, &[10, 14], 1);
+                ispace.set_rect(1, &[0, 4], 1, NodeID(0));
+                ispace.set_rect(1, &[10, 14], 1, NodeID(0));
                 // 5 + 5 = 10
                 assert_eq!(ispace.volume(), 10);
             }
@@ -1050,18 +1066,18 @@ mod tests {
             #[test]
             fn test_ispace_volume_1d_multiple_points() {
                 let mut ispace = new_ispace(1);
-                ispace.set_point(1, &[0]);
-                ispace.set_point(1, &[5]);
-                ispace.set_point(1, &[10]);
+                ispace.set_point(1, &[0], NodeID(0));
+                ispace.set_point(1, &[5], NodeID(0));
+                ispace.set_point(1, &[10], NodeID(0));
                 assert_eq!(ispace.volume(), 3);
             }
 
             #[test]
             fn test_ispace_volume_1d_mixed_rects_and_points() {
                 let mut ispace = new_ispace(1);
-                ispace.set_rect(1, &[0, 4], 1); // 5 points
-                ispace.set_point(1, &[10]); // 1 point
-                ispace.set_point(1, &[20]); // 1 point
+                ispace.set_rect(1, &[0, 4], 1, NodeID(0)); // 5 points
+                ispace.set_point(1, &[10], NodeID(0)); // 1 point
+                ispace.set_point(1, &[20], NodeID(0)); // 1 point
                 assert_eq!(ispace.volume(), 7);
             }
 
@@ -1082,16 +1098,16 @@ mod tests {
             fn test_ispace_volume_2d_multiple_rects() {
                 let mut ispace = new_ispace(1);
                 // Two disjoint rectangles
-                ispace.set_rect(2, &[0, 0, 2, 2], 2); // 3x3 = 9
-                ispace.set_rect(2, &[10, 10, 12, 12], 2); // 3x3 = 9
+                ispace.set_rect(2, &[0, 0, 2, 2], 2, NodeID(0)); // 3x3 = 9
+                ispace.set_rect(2, &[10, 10, 12, 12], 2, NodeID(0)); // 3x3 = 9
                 assert_eq!(ispace.volume(), 18);
             }
 
             #[test]
             fn test_ispace_volume_2d_mixed() {
                 let mut ispace = new_ispace(1);
-                ispace.set_rect(2, &[0, 0, 1, 1], 2); // 2x2 = 4
-                ispace.set_point(2, &[10, 10]); // 1
+                ispace.set_rect(2, &[0, 0, 1, 1], 2, NodeID(0)); // 2x2 = 4
+                ispace.set_point(2, &[10, 10], NodeID(0)); // 1
                 assert_eq!(ispace.volume(), 5);
             }
 
@@ -1112,17 +1128,17 @@ mod tests {
             fn test_ispace_volume_3d_multiple_rects() {
                 let mut ispace = new_ispace(1);
                 // Two disjoint cubes
-                ispace.set_rect(3, &[0, 0, 0, 1, 1, 1], 3); // 2x2x2 = 8
-                ispace.set_rect(3, &[10, 10, 10, 11, 11, 11], 3); // 2x2x2 = 8
+                ispace.set_rect(3, &[0, 0, 0, 1, 1, 1], 3, NodeID(0)); // 2x2x2 = 8
+                ispace.set_rect(3, &[10, 10, 10, 11, 11, 11], 3, NodeID(0)); // 2x2x2 = 8
                 assert_eq!(ispace.volume(), 16);
             }
 
             #[test]
             fn test_ispace_volume_3d_mixed() {
                 let mut ispace = new_ispace(1);
-                ispace.set_rect(3, &[0, 0, 0, 1, 1, 1], 3); // 2x2x2 = 8
-                ispace.set_point(3, &[10, 10, 10]); // 1
-                ispace.set_point(3, &[20, 20, 20]); // 1
+                ispace.set_rect(3, &[0, 0, 0, 1, 1, 1], 3, NodeID(0)); // 2x2x2 = 8
+                ispace.set_point(3, &[10, 10, 10], NodeID(0)); // 1
+                ispace.set_point(3, &[20, 20, 20], NodeID(0)); // 1
                 assert_eq!(ispace.volume(), 10);
             }
         }
@@ -1158,8 +1174,8 @@ mod tests {
             #[test]
             fn test_ispace_contains_point_1d_multiple_rects() {
                 let mut ispace = new_ispace(1);
-                ispace.set_rect(1, &[0, 4], 1);
-                ispace.set_rect(1, &[10, 14], 1);
+                ispace.set_rect(1, &[0, 4], 1, NodeID(0));
+                ispace.set_rect(1, &[10, 14], 1, NodeID(0));
                 // In first rect
                 assert!(ispace.contains_point(&point1d(2)));
                 // In second rect
@@ -1171,9 +1187,9 @@ mod tests {
             #[test]
             fn test_ispace_contains_point_1d_multiple_points() {
                 let mut ispace = new_ispace(1);
-                ispace.set_point(1, &[0]);
-                ispace.set_point(1, &[5]);
-                ispace.set_point(1, &[10]);
+                ispace.set_point(1, &[0], NodeID(0));
+                ispace.set_point(1, &[5], NodeID(0));
+                ispace.set_point(1, &[10], NodeID(0));
                 assert!(ispace.contains_point(&point1d(0)));
                 assert!(ispace.contains_point(&point1d(5)));
                 assert!(ispace.contains_point(&point1d(10)));
@@ -1200,8 +1216,8 @@ mod tests {
             #[test]
             fn test_ispace_contains_point_2d_multiple_rects() {
                 let mut ispace = new_ispace(1);
-                ispace.set_rect(2, &[0, 0, 4, 4], 2);
-                ispace.set_rect(2, &[10, 10, 14, 14], 2);
+                ispace.set_rect(2, &[0, 0, 4, 4], 2, NodeID(0));
+                ispace.set_rect(2, &[10, 10, 14, 14], 2, NodeID(0));
                 // In first rect
                 assert!(ispace.contains_point(&point2d(2, 2)));
                 // In second rect
@@ -1213,8 +1229,8 @@ mod tests {
             #[test]
             fn test_ispace_contains_point_2d_mixed() {
                 let mut ispace = new_ispace(1);
-                ispace.set_rect(2, &[0, 0, 4, 4], 2);
-                ispace.set_point(2, &[10, 10]);
+                ispace.set_rect(2, &[0, 0, 4, 4], 2, NodeID(0));
+                ispace.set_point(2, &[10, 10], NodeID(0));
                 assert!(ispace.contains_point(&point2d(2, 2)));
                 assert!(ispace.contains_point(&point2d(10, 10)));
                 assert!(!ispace.contains_point(&point2d(7, 7)));
@@ -1240,8 +1256,8 @@ mod tests {
             #[test]
             fn test_ispace_contains_point_3d_multiple_rects() {
                 let mut ispace = new_ispace(1);
-                ispace.set_rect(3, &[0, 0, 0, 4, 4, 4], 3);
-                ispace.set_rect(3, &[10, 10, 10, 14, 14, 14], 3);
+                ispace.set_rect(3, &[0, 0, 0, 4, 4, 4], 3, NodeID(0));
+                ispace.set_rect(3, &[10, 10, 10, 14, 14, 14], 3, NodeID(0));
                 // In first rect
                 assert!(ispace.contains_point(&point3d(2, 2, 2)));
                 // In second rect
@@ -1253,8 +1269,8 @@ mod tests {
             #[test]
             fn test_ispace_contains_point_3d_mixed() {
                 let mut ispace = new_ispace(1);
-                ispace.set_rect(3, &[0, 0, 0, 4, 4, 4], 3);
-                ispace.set_point(3, &[10, 10, 10]);
+                ispace.set_rect(3, &[0, 0, 0, 4, 4, 4], 3, NodeID(0));
+                ispace.set_point(3, &[10, 10, 10], NodeID(0));
                 assert!(ispace.contains_point(&point3d(2, 2, 2)));
                 assert!(ispace.contains_point(&point3d(10, 10, 10)));
                 assert!(!ispace.contains_point(&point3d(7, 7, 7)));
@@ -1302,8 +1318,8 @@ mod tests {
             #[test]
             fn test_ispace_overlaps_1d_multiple_rects_first() {
                 let mut ispace = new_ispace(1);
-                ispace.set_rect(1, &[0, 4], 1);
-                ispace.set_rect(1, &[10, 14], 1);
+                ispace.set_rect(1, &[0, 4], 1, NodeID(0));
+                ispace.set_rect(1, &[10, 14], 1, NodeID(0));
                 // Overlaps first rect only
                 assert!(ispace.overlaps(&rect1d(2, 6)));
             }
@@ -1311,8 +1327,8 @@ mod tests {
             #[test]
             fn test_ispace_overlaps_1d_multiple_rects_second() {
                 let mut ispace = new_ispace(1);
-                ispace.set_rect(1, &[0, 4], 1);
-                ispace.set_rect(1, &[10, 14], 1);
+                ispace.set_rect(1, &[0, 4], 1, NodeID(0));
+                ispace.set_rect(1, &[10, 14], 1, NodeID(0));
                 // Overlaps second rect only
                 assert!(ispace.overlaps(&rect1d(12, 20)));
             }
@@ -1320,8 +1336,8 @@ mod tests {
             #[test]
             fn test_ispace_overlaps_1d_multiple_rects_gap() {
                 let mut ispace = new_ispace(1);
-                ispace.set_rect(1, &[0, 4], 1);
-                ispace.set_rect(1, &[10, 14], 1);
+                ispace.set_rect(1, &[0, 4], 1, NodeID(0));
+                ispace.set_rect(1, &[10, 14], 1, NodeID(0));
                 // In the gap (within bounds but doesn't overlap any rect)
                 assert!(!ispace.overlaps(&rect1d(6, 8)));
             }
@@ -1367,8 +1383,8 @@ mod tests {
             #[test]
             fn test_ispace_overlaps_2d_multiple_rects() {
                 let mut ispace = new_ispace(1);
-                ispace.set_rect(2, &[0, 0, 4, 4], 2);
-                ispace.set_rect(2, &[10, 10, 14, 14], 2);
+                ispace.set_rect(2, &[0, 0, 4, 4], 2, NodeID(0));
+                ispace.set_rect(2, &[10, 10, 14, 14], 2, NodeID(0));
                 // Overlaps first
                 assert!(ispace.overlaps(&rect2d(2, 2, 6, 6)));
                 // Overlaps second
@@ -1418,8 +1434,8 @@ mod tests {
             #[test]
             fn test_ispace_overlaps_3d_multiple_rects() {
                 let mut ispace = new_ispace(1);
-                ispace.set_rect(3, &[0, 0, 0, 4, 4, 4], 3);
-                ispace.set_rect(3, &[10, 10, 10, 14, 14, 14], 3);
+                ispace.set_rect(3, &[0, 0, 0, 4, 4, 4], 3, NodeID(0));
+                ispace.set_rect(3, &[10, 10, 10, 14, 14, 14], 3, NodeID(0));
                 // Overlaps first
                 assert!(ispace.overlaps(&rect3d(2, 2, 2, 6, 6, 6)));
                 // Overlaps second
@@ -1445,8 +1461,8 @@ mod tests {
             #[test]
             fn test_ispace_overlaps_3d_mixed() {
                 let mut ispace = new_ispace(1);
-                ispace.set_rect(3, &[0, 0, 0, 4, 4, 4], 3);
-                ispace.set_point(3, &[10, 10, 10]);
+                ispace.set_rect(3, &[0, 0, 0, 4, 4, 4], 3, NodeID(0));
+                ispace.set_point(3, &[10, 10, 10], NodeID(0));
                 // Overlaps rect
                 assert!(ispace.overlaps(&rect3d(2, 2, 2, 6, 6, 6)));
                 // Overlaps point
