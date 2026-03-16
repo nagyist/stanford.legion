@@ -859,103 +859,159 @@ impl Proc {
             let mut task_entry = self.entries.remove(task_uid).unwrap();
             // Also find any event waiter backtrace information
             let mut event_waits = self.event_waits.remove(task_uid).unwrap_or_default();
-            // Sort subcalls by their size from smallest to largest
-            calls.sort_by_key(|a| a.2 - a.1);
-            // Push waits into the smallest subcall we can find
+            // Sort subcalls by start time ascending, then end time descending
+            // so that larger (enclosing) calls come before smaller (nested) ones
+            // when they share the same start time
+            calls.sort_by(|a, b| a.1.cmp(&b.1).then(b.2.cmp(&a.2)));
+
+            // Use a stack sweep to assign event waits to the smallest
+            // containing call and to find the immediate dominator for each call.
+            // We interleave processing of calls and waits in start-time order.
+            // The stack holds the current nesting chain of calls; the top is
+            // always the innermost active call.
+
+            // Sort event waits by start time for the interleaved sweep
+            let mut wait_indices: Vec<usize> =
+                (0..task_entry.waiters.wait_intervals.len()).collect();
+            wait_indices.sort_by_key(|&i| task_entry.waiters.wait_intervals[i].start);
+
+            let mut call_stack: Vec<(ProfUID, Timestamp, Timestamp)> = Vec::new();
             let mut to_remove = Vec::new();
-            for (idx, wait) in task_entry.waiters.wait_intervals.iter_mut().enumerate() {
-                let (mut backtrace, mut provenance) = if let Some(event) = wait.event {
-                    if let Some((bt, prov)) = event_waits.remove(&event) {
-                        (Some(bt), prov)
-                    } else {
-                        (None, None)
-                    }
+            // Track which entries received new wait_intervals so we can
+            // batch-sort them at the end
+            let mut modified_entries: Vec<ProfUID> = Vec::new();
+
+            let mut ci = 0; // index into calls
+            let mut wi = 0; // index into wait_indices
+
+            while ci < calls.len() || wi < wait_indices.len() {
+                // Decide whether to process the next call or the next wait
+                // based on start time. Process calls first on ties so the
+                // call is on the stack when we encounter its contained waits.
+                let process_call = if ci < calls.len() && wi < wait_indices.len() {
+                    let call_start = calls[ci].1;
+                    let wait_start = task_entry.waiters.wait_intervals[wait_indices[wi]].start;
+                    call_start <= wait_start
                 } else {
-                    (None, None)
+                    ci < calls.len()
                 };
-                // Find the smallest containing call
-                for (call_uid, call_start, call_stop) in calls.iter() {
-                    if (*call_start <= wait.start) && (wait.end <= *call_stop) {
-                        let call_entry = self.entries.get_mut(call_uid).unwrap();
-                        call_entry
-                            .waiters
-                            .wait_intervals
-                            .push(WaitInterval::from_event(
-                                wait.start,
-                                wait.ready,
-                                wait.end,
-                                wait.event.unwrap(),
-                                provenance,
-                                backtrace,
-                            ));
-                        to_remove.push(idx);
-                        backtrace = None;
-                        provenance = None;
-                        break;
-                    } else {
-                        // Waits should not be partially overlapping with calls
-                        // Note this still allows waits which dominates entire
-                        // calls which can happen on external threads
-                        assert!(
-                            (wait.end <= *call_start)
-                                || (*call_stop <= wait.start)
-                                || ((wait.start <= *call_start) && (*call_stop <= wait.end))
-                        );
+
+                if process_call {
+                    let (call_uid, call_start, call_stop) = calls[ci];
+                    // Pop calls from the stack that have ended
+                    while let Some(&(_, _, stack_stop)) = call_stack.last() {
+                        if stack_stop <= call_start {
+                            call_stack.pop();
+                        } else {
+                            break;
+                        }
                     }
-                }
-                // Save the remaining backtrace if there is one to this waiter
-                wait.backtrace = backtrace;
-                wait.provenance = provenance;
-            }
-            // Remove any waits that we moved into a call
-            for idx in to_remove.iter().rev() {
-                task_entry.waiters.wait_intervals.remove(*idx);
-            }
-            // For each subcall find the next largest subcall that dominates
-            // it and add a wait for it, if one isn't found then we add the
-            // wait to the task for that subcall
-            for (idx1, &(call_uid, call_start, call_stop)) in calls.iter().enumerate() {
-                let mut caller_uid = None;
-                for &(next_uid, next_start, next_stop) in &calls[idx1 + 1..] {
-                    if (next_start <= call_start) && (call_stop <= next_stop) {
-                        let next_entry = self.entries.get_mut(&next_uid).unwrap();
-                        next_entry
+                    // The stack top (if any) is the immediate dominator
+                    let caller_uid = if let Some(&(dom_uid, _, _)) = call_stack.last() {
+                        let dom_entry = self.entries.get_mut(&dom_uid).unwrap();
+                        dom_entry
                             .waiters
                             .wait_intervals
                             .push(WaitInterval::from_caller(call_start, call_stop, call_uid));
-                        // Keep the wait intervals sorted by starting time
-                        next_entry.waiters.wait_intervals.sort_by_key(|w| w.start);
-                        caller_uid = Some(next_uid);
-                        break;
+                        modified_entries.push(dom_uid);
+                        dom_uid
                     } else {
-                        // Calls should not be partially overlapping with eachother
-                        assert!((call_stop <= next_start) || (next_stop <= call_start));
+                        task_entry
+                            .waiters
+                            .wait_intervals
+                            .push(WaitInterval::from_caller(call_start, call_stop, call_uid));
+                        *task_uid
+                    };
+                    // Update the operation info for the call
+                    let call_entry = self.entries.get_mut(&call_uid).unwrap();
+                    match task_entry.kind {
+                        ProcEntryKind::Task(..) => {
+                            call_entry.initiation_op = task_entry.op_id;
+                        }
+                        ProcEntryKind::MetaTask(_) | ProcEntryKind::ProfTask => {
+                            call_entry.initiation_op = task_entry.initiation_op;
+                        }
+                        _ => {
+                            panic!("bad processor entry kind");
+                        }
                     }
+                    // Update the call entry creator to point to its dominator
+                    call_entry.creator = Some(caller_uid);
+                    // Push this call onto the stack
+                    call_stack.push((call_uid, call_start, call_stop));
+                    ci += 1;
+                } else {
+                    let wait_idx = wait_indices[wi];
+                    let wait = &task_entry.waiters.wait_intervals[wait_idx];
+                    let wait_start = wait.start;
+                    let wait_end = wait.end;
+                    let wait_ready = wait.ready;
+                    let wait_event = wait.event;
+                    // Pop calls from the stack that have ended before this wait
+                    while let Some(&(_, _, stack_stop)) = call_stack.last() {
+                        if stack_stop <= wait_start {
+                            call_stack.pop();
+                        } else {
+                            break;
+                        }
+                    }
+                    // Look up backtrace/provenance for this wait
+                    let (backtrace, provenance) = if let Some(event) = wait_event {
+                        if let Some((bt, prov)) = event_waits.remove(&event) {
+                            (Some(bt), prov)
+                        } else {
+                            (None, None)
+                        }
+                    } else {
+                        (None, None)
+                    };
+                    // If the stack top fully contains this wait, push it there
+                    if let Some(&(top_uid, top_start, top_stop)) = call_stack.last() {
+                        if (top_start <= wait_start) && (wait_end <= top_stop) {
+                            let call_entry = self.entries.get_mut(&top_uid).unwrap();
+                            call_entry
+                                .waiters
+                                .wait_intervals
+                                .push(WaitInterval::from_event(
+                                    wait_start,
+                                    wait_ready,
+                                    wait_end,
+                                    wait_event.unwrap(),
+                                    provenance,
+                                    backtrace,
+                                ));
+                            modified_entries.push(top_uid);
+                            to_remove.push(wait_idx);
+                        } else {
+                            // Wait is not inside the top call (it dominates
+                            // or is disjoint) — leave it on the task
+                            let wait = &mut task_entry.waiters.wait_intervals[wait_idx];
+                            wait.backtrace = backtrace;
+                            wait.provenance = provenance;
+                        }
+                    } else {
+                        // No calls on the stack — leave the wait on the task
+                        let wait = &mut task_entry.waiters.wait_intervals[wait_idx];
+                        wait.backtrace = backtrace;
+                        wait.provenance = provenance;
+                    }
+                    wi += 1;
                 }
-                if caller_uid.is_none() {
-                    task_entry
-                        .waiters
-                        .wait_intervals
-                        .push(WaitInterval::from_caller(call_start, call_stop, call_uid));
-                    // Keep the wait intervals sorted by starting time
-                    task_entry.waiters.wait_intervals.sort_by_key(|w| w.start);
-                    caller_uid = Some(*task_uid);
+            }
+
+            // Remove event waits that we moved into calls (reverse order
+            // to keep indices valid)
+            to_remove.sort_unstable();
+            for idx in to_remove.iter().rev() {
+                task_entry.waiters.wait_intervals.remove(*idx);
+            }
+            // Sort wait_intervals by start time for the task entry and
+            // any call entries that received new waits
+            task_entry.waiters.wait_intervals.sort_by_key(|w| w.start);
+            for uid in modified_entries.iter() {
+                if let Some(entry) = self.entries.get_mut(uid) {
+                    entry.waiters.wait_intervals.sort_by_key(|w| w.start);
                 }
-                // Update the operation info for the calls
-                let call_entry = self.entries.get_mut(&call_uid).unwrap();
-                match task_entry.kind {
-                    ProcEntryKind::Task(..) => {
-                        call_entry.initiation_op = task_entry.op_id;
-                    }
-                    ProcEntryKind::MetaTask(_) | ProcEntryKind::ProfTask => {
-                        call_entry.initiation_op = task_entry.initiation_op;
-                    }
-                    _ => {
-                        panic!("bad processor entry kind");
-                    }
-                }
-                // Update the call entry creator
-                call_entry.creator = caller_uid;
             }
             // Finally add the task entry back in now that we're done mutating it
             self.entries.insert(*task_uid, task_entry);
@@ -4744,7 +4800,7 @@ fn process_record(
         } => {
             state
                 .find_index_space_mut(*ispace_id)
-                .set_point(*dim, &rem.0);
+                .set_point(*dim, &rem.0, node.unwrap());
         }
         Record::IndexSpaceRectDesc {
             ispace_id,
@@ -4754,7 +4810,7 @@ fn process_record(
             let max_dim = state.max_dim;
             state
                 .find_index_space_mut(*ispace_id)
-                .set_rect(*dim, &rem.0, max_dim);
+                .set_rect(*dim, &rem.0, max_dim, node.unwrap());
         }
         Record::IndexSpaceEmptyDesc { ispace_id } => {
             state.find_index_space_mut(*ispace_id).set_empty();
