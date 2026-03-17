@@ -536,6 +536,9 @@ namespace Legion {
     InnerContext* ShardTask::create_implicit_context(void)
     //--------------------------------------------------------------------------
     {
+      LegionSpy::log_shard(
+          LEGION_DISTRIBUTED_ID_FILTER(shard_manager->did), shard_id,
+          get_unique_id());
       const Mapper::ContextConfigOutput& configuration =
           shard_manager->context_configuration;
       ReplicateContext* repl_ctx = nullptr;
