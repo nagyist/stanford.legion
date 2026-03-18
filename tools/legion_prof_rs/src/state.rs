@@ -1283,52 +1283,54 @@ impl Container for Proc {
             let lower = upper - 1;
             let prof_uid = level[lower].entry;
             let entry = self.entries.get(&prof_uid).unwrap();
-            // Find the last running range that happens before the start time
-            let mut running_start = entry.time_range.start.unwrap();
-            assert!(running_start < start);
-            for wait in &entry.waiters.wait_intervals {
-                // Should need to wait before the start happens
-                assert!(wait.start <= start);
-                // We're only interested in ranges that happen after the ready time
-                if ready <= wait.start {
-                    // Running after the task becomes ready, see if this is
-                    // the latest running interval before the start
-                    let diff = start - wait.start;
-                    // See if this is the closest running range to the start
-                    if let Some((_, _, prev_stop)) = result {
-                        let prev_diff = start - prev_stop;
-                        if diff < prev_diff {
-                            result = Some((prof_uid, running_start, wait.start));
-                        }
-                    } else {
-                        // First one so go ahead and record it
-                        result = Some((prof_uid, running_start, wait.start));
+            // Find the last running range that happens before the start time.
+            // The running intervals for an entry are the gaps between its
+            // wait intervals (sorted by start time):
+            //   [entry_start, w[0].start], [w[0].end, w[1].start], ..., [w[n-1].end, entry_stop]
+            // Since these are sorted, the closest running interval to `start`
+            // whose stop is in (ready, start] is either:
+            //   1) The interval ending at the last wait with ready < w.start <= start
+            //   2) The final interval after the last wait before start
+            // No earlier interval can be closer, so two binary searches suffice.
+            let waits = &entry.waiters.wait_intervals;
+            let entry_start = entry.time_range.start.unwrap();
+            assert!(entry_start < start);
+            // Find the last wait that starts at or before `start`
+            let k = waits.partition_point(|w| w.start <= start);
+            // Candidate 1: the running interval ending at w[k-1].start
+            // This is the gap [w[k-2].end or entry_start, w[k-1].start]
+            if k > 0 && waits[k - 1].start > ready {
+                let running_start = if k >= 2 {
+                    waits[k - 2].end
+                } else {
+                    entry_start
+                };
+                let running_stop = waits[k - 1].start;
+                let diff = start - running_stop;
+                if let Some((_, _, prev_stop)) = result {
+                    if diff < start - prev_stop {
+                        result = Some((prof_uid, running_start, running_stop));
                     }
-                }
-                running_start = wait.end;
-                // If the next running range starts after start we don't need to consider it
-                if start <= running_start {
-                    break;
+                } else {
+                    result = Some((prof_uid, running_start, running_stop));
                 }
             }
-            // Make sure the running range starts before the start
-            if running_start < start {
+            // Candidate 2: the running interval after the last wait before start
+            // This is the gap [w[k-1].end or entry_start, entry_stop]
+            let final_start = if k > 0 { waits[k - 1].end } else { entry_start };
+            if final_start < start {
                 let running_stop = entry.time_range.stop.unwrap();
                 // If you hit this assertion that means that there are two tasks running
                 // at the same time on the processor which shouldn't be possible
                 assert!(running_stop <= start);
-                // We're only interested in ranges that end after the ready time
                 if ready < running_stop {
                     let diff = start - running_stop;
-                    // See if this is the closest running range to the start
                     if let Some((_, _, prev_stop)) = result {
-                        let prev_diff = start - prev_stop;
-                        if diff < prev_diff {
-                            result = Some((prof_uid, running_start, running_stop));
+                        if diff < start - prev_stop {
+                            result = Some((prof_uid, final_start, running_stop));
                         }
                     } else {
-                        // First one so go ahead and record it
-                        result = Some((prof_uid, running_start, running_stop));
+                        result = Some((prof_uid, final_start, running_stop));
                     }
                 }
             }
