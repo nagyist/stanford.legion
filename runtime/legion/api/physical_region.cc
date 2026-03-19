@@ -584,6 +584,7 @@ namespace Legion {
       valid = false;
       // Report any usage to the profiler
       report_usage(escaped);
+      start_time.reset();
     }
 
     //--------------------------------------------------------------------------
