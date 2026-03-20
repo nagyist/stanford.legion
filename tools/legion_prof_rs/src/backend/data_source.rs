@@ -6,8 +6,8 @@ use legion_prof_viewer::{
     data::{
         self, Color32, DataSource, DataSourceDescription, DataSourceInfo, EntryID, EntryInfo,
         Field, FieldID, FieldSchema, Item, ItemField, ItemLink, ItemMeta, ItemUID, Rgba,
-        SlotMetaTile, SlotMetaTileData, SlotTile, SlotTileData, SummaryTile, SummaryTileData,
-        TileID, TileSet, UtilPoint,
+        SampleFormat, SlotMetaTile, SlotMetaTileData, SlotTile, SlotTileData, SummaryTile,
+        SummaryTileData, TileID, UtilPoint,
     },
     timestamp as ts,
 };
@@ -3322,9 +3322,11 @@ impl DataSource for StateDataSource {
         Ok(DataSourceInfo {
             entry_info: self.info.clone(),
             interval: self.interval(),
-            tile_set: TileSet::default(),
+            tile_set: Default::default(),
             field_schema: self.field_schema.clone(),
             warning_message: self.generate_warning_message(),
+            nonempty_tiles: Default::default(),
+            sample_format: SampleFormat::Center,
         })
     }
 
