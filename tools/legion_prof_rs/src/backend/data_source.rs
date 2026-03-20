@@ -9,6 +9,7 @@ use legion_prof_viewer::{
         SampleFormat, SlotMetaTile, SlotMetaTileData, SlotTile, SlotTileData, SummaryTile,
         SummaryTileData, TileID, UtilPoint,
     },
+    summary::{resample_step_utilization, slice_utilization},
     timestamp as ts,
 };
 
@@ -129,7 +130,7 @@ pub struct StateDataSource {
     chan_entries: BTreeMap<ChanID, EntryID>,
     chan_groups: BTreeMap<Option<NodeID>, Vec<ChanID>>,
     deppart_groups: BTreeMap<Option<NodeID>, Vec<ChanID>>,
-    step_utilization_cache: Mutex<BTreeMap<EntryID, Arc<Vec<(Timestamp, f64)>>>>,
+    step_utilization_cache: Mutex<BTreeMap<EntryID, Arc<Vec<UtilPoint>>>>,
 }
 
 impl StateDataSource {
@@ -671,6 +672,15 @@ fn show_wait_interval(wait: &WaitInterval, tile_id: TileID, full: bool) -> bool 
     screen_space_fraction(interval) >= WAIT_INTERVAL_MIN_SIZE
 }
 
+fn convert_to_viewer_format(util: Vec<(Timestamp, f64)>) -> Vec<UtilPoint> {
+    util.iter()
+        .map(|&(t, u)| UtilPoint {
+            time: t.into(),
+            util: u as f32,
+        })
+        .collect()
+}
+
 impl StateDataSource {
     /// A step utilization is a series of step functions. At time T, the
     /// utilization takes value U. That value continues until the next
@@ -679,7 +689,7 @@ impl StateDataSource {
     /// interpolation and level of detail. We compute this first because it's
     /// how the profiler internally represents utilization, but we convert it
     /// to a more useful format below.
-    fn generate_step_utilization(&self, entry_id: &EntryID) -> Arc<Vec<(Timestamp, f64)>> {
+    fn generate_step_utilization(&self, entry_id: &EntryID) -> Arc<Vec<UtilPoint>> {
         // This is an INTENTIONAL race; if two requests for the same entry
         // arrive simultaneously, we'll miss in the cache on both and compute
         // the utilization twice. The result should be the same, so this is
@@ -773,79 +783,12 @@ impl StateDataSource {
             }
             _ => unreachable!(),
         };
-        let result = Arc::new(step_utilization);
+        let result = Arc::new(convert_to_viewer_format(step_utilization));
         cache
             .lock()
             .unwrap()
             .insert(entry_id.clone(), result.clone());
         result
-    }
-
-    /// Converts the step utilization into a sample utilization, where each
-    /// utilization point (sample) represents the average utilization over a
-    /// certain time interval. The sample is located in the middle of the
-    /// interval.
-    fn compute_sample_utilization(
-        step_utilization: &[(Timestamp, f64)],
-        interval: ts::Interval,
-        samples: u64,
-    ) -> Vec<UtilPoint> {
-        let start_time = interval.start.0 as u64;
-        let duration = interval.duration_ns() as u64;
-
-        let first_index = step_utilization
-            .partition_point(|&(t, _)| {
-                let t: ts::Timestamp = t.into();
-                t < interval.start
-            })
-            .saturating_sub(1);
-
-        let mut last_index = step_utilization[first_index..].partition_point(|&(t, _)| {
-            let t: ts::Timestamp = t.into();
-            t < interval.stop
-        }) + first_index;
-        if last_index + 1 < step_utilization.len() {
-            last_index += 1;
-        }
-
-        let mut utilization = Vec::new();
-        let mut last_t = 0u64;
-        let mut last_u = 0.0;
-        let mut step_it = step_utilization[first_index..last_index].iter().peekable();
-        for sample in 0..samples {
-            let sample_start = duration * sample / samples + start_time;
-            let sample_stop = duration * (sample + 1) / samples + start_time;
-            if sample_stop - sample_start == 0 {
-                continue;
-            }
-
-            let mut sample_util = 0.0;
-            while let Some((t, u)) = step_it.next_if(|(t, _)| t.to_ns() < sample_stop) {
-                if t.to_ns() < sample_start {
-                    (last_t, last_u) = (t.to_ns(), *u);
-                    continue;
-                }
-
-                // This is a step utilization. So utilization u begins on time
-                // t. That means the previous utilization stop at time t-1.
-                let last_duration = (t.to_ns() - 1).saturating_sub(last_t.max(sample_start));
-                sample_util += last_duration as f64 * last_u;
-
-                (last_t, last_u) = (t.to_ns(), *u);
-            }
-            if last_t < sample_stop {
-                let last_duration = sample_stop - last_t.max(sample_start);
-                sample_util += last_duration as f64 * last_u;
-            }
-
-            sample_util /= (sample_stop - sample_start) as f64;
-            assert!(sample_util <= 1.0);
-            utilization.push(UtilPoint {
-                time: Timestamp::from_ns((sample_start + sample_stop) / 2).into(),
-                util: sample_util as f32,
-            });
-        }
-        utilization
     }
 
     fn build_items<C>(
@@ -3316,7 +3259,7 @@ impl DataSource for StateDataSource {
             field_schema: self.field_schema.clone(),
             warning_message: self.generate_warning_message(),
             nonempty_tiles: Default::default(),
-            sample_format: SampleFormat::Center,
+            sample_format: SampleFormat::Start,
         })
     }
 
@@ -3326,14 +3269,47 @@ impl DataSource for StateDataSource {
         tile_id: TileID,
         full: bool,
     ) -> data::Result<SummaryTile> {
-        // Pick this number to be approximately the number of pixels we expect
-        // the user to have on their screen. If this is a full tile, increase
-        // this so that we get more resolution when zoomed in.
-        let samples = if full { 4_000 } else { 800 };
+        let mut utilization = self.generate_step_utilization(entry_id).to_vec();
+        let tile_utilization = slice_utilization(&utilization, tile_id.0);
 
-        let step_utilization = self.generate_step_utilization(entry_id);
+        // Resample the utilization plot to reduce the amount of data we send to
+        // the viewer. We provide more resolution for full tiles, though we
+        // still need to limit the size or else disk usage will grow dramatically.
+        let num_samples = if full { 4_000 } else { 800 };
+        if tile_utilization.len() > num_samples as usize {
+            utilization = resample_step_utilization(
+                &tile_utilization,
+                tile_id.0,
+                num_samples,
+                SampleFormat::Start,
+            );
+        } else {
+            // The utilization plot is already small enough so just fix up the
+            // endpoints and return it.
+            utilization = tile_utilization.to_vec();
+            if !utilization.is_empty() {
+                if utilization
+                    .get(1)
+                    .is_some_and(|second| second.time == tile_id.0.start)
+                {
+                    // Second point happens to exactly line up with the tile, so
+                    // just throw away the first point.
+                    utilization.remove(0);
+                } else {
+                    // Clamp first point to tile.
+                    let first = utilization.first_mut().unwrap();
+                    first.time = tile_id.0.clamp_point(first.time);
+                }
 
-        let utilization = Self::compute_sample_utilization(&step_utilization, tile_id.0, samples);
+                if utilization
+                    .last()
+                    .is_some_and(|last| !tile_id.0.contains(last.time))
+                {
+                    // Last point is outside tile, so throw it away.
+                    utilization.pop();
+                }
+            }
+        }
 
         Ok(SummaryTile {
             entry_id: entry_id.clone(),
