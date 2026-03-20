@@ -78,12 +78,10 @@ enum EntryKind {
 #[derive(Debug, Clone)]
 struct ItemInfo {
     point_interval: ts::Interval,
-    expand: bool,
 }
 
 #[derive(Debug, Clone)]
 pub struct Fields {
-    expanded_for_visibility: FieldID,
     operation: FieldID,
     insts: FieldID,
     inst_fields: FieldID,
@@ -138,8 +136,6 @@ impl StateDataSource {
         let mut field_schema = FieldSchema::new();
 
         let fields = Fields {
-            expanded_for_visibility: field_schema
-                .insert("(Expanded for Visibility)".to_owned(), false),
             operation: field_schema.insert("Operation".to_owned(), true),
             insts: field_schema.insert("Instances".to_owned(), true),
             inst_fields: field_schema.insert("Fields".to_owned(), true),
@@ -594,6 +590,66 @@ impl StateDataSource {
     }
 }
 
+/// Merge small tasks to reduce load on renderer
+fn merge_items(
+    interval: ts::Interval,
+    tile_id: TileID,
+    full: bool,
+    last: &mut Item,
+    last_meta: Option<&mut ItemMeta>,
+    num_items_field: FieldID,
+    merged: &mut u64,
+) -> bool {
+    // Never merge anything in a full profile.
+    if full {
+        return false;
+    }
+
+    let tile_interval = tile_id.0;
+    let screen_space_fraction =
+        |interval: ts::Interval| interval.duration_ns() as f64 / tile_interval.duration_ns() as f64;
+
+    // Merge two items if:
+    //  1.
+    //     a. Both items are <= size limit,
+    //     OR
+    //     b. Previous item is a merge and current is <= size limit,
+    //  AND
+    //  2. Distance between them is less than the distance limit
+
+    // Merge two items if they are each smaller than or equal to this size
+    // (measured relative to the size of the current tile interval)
+    const MERGE_ITEM_MAX_SIZE: f64 = 1.0e-3;
+
+    // Merge two items if they are at more this far apart
+    // (measured relative to the size of the current tile interval)
+    const MERGE_ITEM_MAX_DISTANCE: f64 = 1.0e-3;
+
+    let last_item_ok_to_merge =
+        *merged > 0 || screen_space_fraction(last.interval) <= MERGE_ITEM_MAX_SIZE;
+    let current_item_ok_to_merge = screen_space_fraction(interval) <= MERGE_ITEM_MAX_SIZE;
+    let distance_in_limit =
+        screen_space_fraction(ts::Interval::new(last.interval.stop, interval.start))
+            <= MERGE_ITEM_MAX_DISTANCE;
+
+    if last_item_ok_to_merge && current_item_ok_to_merge && distance_in_limit {
+        last.interval.stop = interval.stop;
+        last.color = Color::GRAY.into();
+        if let Some(last_meta) = last_meta {
+            if let Some(ItemField(_, Field::U64(value), _)) = last_meta.fields.get_mut(0) {
+                *value += 1;
+            } else {
+                last_meta.title = "Merged Tasks".to_owned();
+                last_meta.fields = vec![ItemField(num_items_field, Field::U64(2), None)];
+            }
+        }
+        *merged += 1;
+        return true;
+    }
+    *merged = 0;
+    false
+}
+
 impl StateDataSource {
     /// A step utilization is a series of step functions. At time T, the
     /// utilization takes value U. That value continues until the next
@@ -771,84 +827,6 @@ impl StateDataSource {
         utilization
     }
 
-    /// Items smaller than this should be expanded (and merged, if suitable
-    /// nearby items are found)
-    const MAX_RATIO: f64 = 2000.0;
-
-    /// Items larger than this should NOT be merged, even if nearby an expanded
-    /// item
-    const MIN_RATIO: f64 = 1000.0;
-
-    /// Expand small items to improve visibility
-    fn expand_item(
-        interval: &mut ts::Interval,
-        tile_id: TileID,
-        last: Option<&Item>,
-        merged: u64,
-    ) -> bool {
-        let view_ratio = tile_id.0.duration_ns() as f64 / interval.duration_ns() as f64;
-
-        let expand = view_ratio > Self::MAX_RATIO;
-        if expand {
-            let min_duration = tile_id.0.duration_ns() as f64 / Self::MAX_RATIO;
-            let center = (interval.start.0 + interval.stop.0) as f64 / 2.0;
-            let start = ts::Timestamp((center - min_duration / 2.0) as i64);
-            let stop = ts::Timestamp(start.0 + min_duration as i64);
-            *interval = ts::Interval::new(start, stop);
-
-            // If the previous task is large (and overlaps), shrink to avoid overlapping it
-            if let Some(last) = last {
-                let last_ratio =
-                    tile_id.0.duration_ns() as f64 / last.interval.duration_ns() as f64;
-                if interval.overlaps(last.interval) && last_ratio < Self::MIN_RATIO {
-                    if merged > 0 {
-                        // It's already a merged task, ok to keep merging
-                    } else {
-                        interval.start = last.interval.stop;
-                    }
-                }
-            }
-        }
-        expand
-    }
-
-    /// Merge small tasks to reduce load on renderer
-    fn merge_items(
-        interval: ts::Interval,
-        tile_id: TileID,
-        last: &mut Item,
-        last_meta: Option<&mut ItemMeta>,
-        num_items_field: FieldID,
-        merged: &mut u64,
-    ) -> bool {
-        // Check for overlap with previous task. If so, either one or the
-        // other task was expanded (since tasks don't normally overlap)
-        // and this is a good opportunity to combine them.
-        if last.interval.overlaps(interval) {
-            // If the current task is large, don't merge. Instead,
-            // just modify the previous task so it doesn't overlap
-            let view_ratio = tile_id.0.duration_ns() as f64 / interval.duration_ns() as f64;
-            if view_ratio < Self::MIN_RATIO {
-                last.interval.stop = interval.start;
-            } else {
-                last.interval.stop = interval.stop;
-                last.color = Color::GRAY.into();
-                if let Some(last_meta) = last_meta {
-                    if let Some(ItemField(_, Field::U64(value), _)) = last_meta.fields.get_mut(0) {
-                        *value += 1;
-                    } else {
-                        last_meta.title = "Merged Tasks".to_owned();
-                        last_meta.fields = vec![ItemField(num_items_field, Field::U64(2), None)];
-                    }
-                }
-                *merged += 1;
-                return true;
-            }
-        }
-        *merged = 0;
-        false
-    }
-
     fn build_items<C>(
         &self,
         cont: &C,
@@ -909,12 +887,9 @@ impl StateDataSource {
 
                 let point_interval: ts::Interval = time_range.into();
                 assert!(point_interval.overlaps(tile_id.0));
-                let mut view_interval = point_interval.intersection(tile_id.0);
+                let view_interval = point_interval.intersection(tile_id.0);
 
                 assert_eq!(level, base.level.unwrap() as usize);
-
-                let expand =
-                    !full && Self::expand_item(&mut view_interval, tile_id, items.last(), *merged);
 
                 if let Some(last) = items.last_mut() {
                     let last_meta = if let Some(ref mut item_metas) = item_metas {
@@ -922,9 +897,10 @@ impl StateDataSource {
                     } else {
                         None
                     };
-                    if Self::merge_items(
+                    if merge_items(
                         view_interval,
                         tile_id,
+                        full,
                         last,
                         last_meta,
                         self.fields.num_items,
@@ -938,15 +914,9 @@ impl StateDataSource {
                 let color: Color32 = color.into();
                 let color: Rgba = color.into();
 
-                let item_meta = item_metas.as_ref().map(|_| {
-                    get_meta(
-                        entry,
-                        ItemInfo {
-                            point_interval,
-                            expand,
-                        },
-                    )
-                });
+                let item_meta = item_metas
+                    .as_ref()
+                    .map(|_| get_meta(entry, ItemInfo { point_interval }));
 
                 let mut add_item =
                     |interval: ts::Interval,
@@ -2070,22 +2040,12 @@ impl StateDataSource {
         let proc = self.state.procs.get(&proc_id).unwrap();
         let mut m: Vec<Vec<ItemMeta>> = Vec::new();
         let items = self.build_items(proc, device, tile_id, full, Some(&mut m), |entry, info| {
-            let ItemInfo {
-                point_interval,
-                expand,
-            } = info;
+            let ItemInfo { point_interval } = info;
 
             let name = entry.name(&self.state);
             let provenance = entry.provenance(&self.state);
 
             let mut fields = Vec::new();
-            if expand {
-                fields.push(ItemField(
-                    self.fields.expanded_for_visibility,
-                    Field::Empty,
-                    None,
-                ));
-            }
             fields.push(ItemField(
                 self.fields.interval,
                 Field::Interval(point_interval),
@@ -2538,22 +2498,12 @@ impl StateDataSource {
         let mem = self.state.mems.get(&mem_id).unwrap();
         let mut m: Vec<Vec<ItemMeta>> = Vec::new();
         let items = self.build_items(mem, None, tile_id, full, Some(&mut m), |entry, info| {
-            let ItemInfo {
-                point_interval,
-                expand,
-            } = info;
+            let ItemInfo { point_interval } = info;
 
             let name = format!("Instance {}", InstShort(entry));
             let provenance = entry.provenance(&self.state);
 
             let mut fields = Vec::new();
-            if expand {
-                fields.push(ItemField(
-                    self.fields.expanded_for_visibility,
-                    Field::Empty,
-                    None,
-                ));
-            }
             fields.push(ItemField(
                 self.fields.interval,
                 Field::Interval(point_interval),
@@ -3071,22 +3021,12 @@ impl StateDataSource {
         let chan = self.state.chans.get(&chan_id).unwrap();
         let mut m: Vec<Vec<ItemMeta>> = Vec::new();
         let items = self.build_items(chan, None, tile_id, full, Some(&mut m), |entry, info| {
-            let ItemInfo {
-                point_interval,
-                expand,
-            } = info;
+            let ItemInfo { point_interval } = info;
 
             let name = format!("{}", ChanEntryShort(entry));
             let provenance = entry.provenance(&self.state);
 
             let mut fields = Vec::new();
-            if expand {
-                fields.push(ItemField(
-                    self.fields.expanded_for_visibility,
-                    Field::Empty,
-                    None,
-                ));
-            }
             fields.push(ItemField(
                 self.fields.interval,
                 Field::Interval(point_interval),
