@@ -26,7 +26,7 @@ use crate::state::{
     BacktraceID, ChanEntry, ChanID, Color, Container, ContainerEntry, Copy, CopyInstInfo, DepPart,
     DepPartInstInfo, DeviceKind, Dim, DimKind, EventEntry, EventEntryKind, EventID, Fill,
     FillInstInfo, Inst, MemID, MemKind, NodeID, OpID, PrivilegeMode, ProcEntryKind, ProcID,
-    ProcKind, ProfUID, ProvenanceID, State, TimeRange, Timestamp,
+    ProcKind, ProfUID, ProvenanceID, State, TimeRange, Timestamp, WaitInterval,
 };
 
 impl Into<ts::Timestamp> for Timestamp {
@@ -91,6 +91,7 @@ pub struct Fields {
     size: FieldID,
     interval: FieldID,
     num_items: FieldID,
+    hidden_waits: FieldID,
     provenance: FieldID,
     status_ready: FieldID,
     status_running: FieldID,
@@ -144,6 +145,7 @@ impl StateDataSource {
             inst_layout: field_schema.insert("Layout".to_owned(), true),
             interval: field_schema.insert("Lifetime".to_owned(), false),
             num_items: field_schema.insert("Number of Items".to_owned(), false),
+            hidden_waits: field_schema.insert("Contains Hidden Waits".to_owned(), false),
             provenance: field_schema.insert("Provenance".to_owned(), true),
             size: field_schema.insert("Size".to_owned(), true),
             status_ready: field_schema.insert("Ready".to_owned(), false),
@@ -650,6 +652,25 @@ fn merge_items(
     false
 }
 
+/// Filter out short waits (that won't be visible to the user)
+fn show_wait_interval(wait: &WaitInterval, tile_id: TileID, full: bool) -> bool {
+    // Never filter anything in a full profile.
+    if full {
+        return true;
+    }
+
+    let tile_interval = tile_id.0;
+    let screen_space_fraction =
+        |interval: ts::Interval| interval.duration_ns() as f64 / tile_interval.duration_ns() as f64;
+
+    // Hide wait intervals smaller than this size
+    // (measured relative to the size of the current tile interval)
+    const WAIT_INTERVAL_MIN_SIZE: f64 = 5.0e-4;
+
+    let interval = ts::Interval::new(wait.start.into(), wait.end.into());
+    screen_space_fraction(interval) >= WAIT_INTERVAL_MIN_SIZE
+}
+
 impl StateDataSource {
     /// A step utilization is a series of step functions. At time T, the
     /// utilization takes value U. That value continues until the next
@@ -849,6 +870,8 @@ impl StateDataSource {
         merged.resize(levels, 0u64);
         let points_stacked = cont.time_points_stacked(device);
 
+        let tile_interval = tile_id.0;
+
         for (level, points) in points_stacked.iter().enumerate() {
             let items = &mut items[level];
             let mut item_metas = item_metas.as_mut().map(|m| &mut m[level]);
@@ -856,11 +879,11 @@ impl StateDataSource {
 
             let first_index = points.partition_point(|p| {
                 let stop: ts::Timestamp = cont.entry(p.entry).time_range().stop.unwrap().into();
-                ts::Timestamp(stop.0.saturating_sub(1)) < tile_id.0.start
+                ts::Timestamp(stop.0.saturating_sub(1)) < tile_interval.start
             });
             let last_index = points[first_index..].partition_point(|p| {
                 let start: ts::Timestamp = cont.entry(p.entry).time_range().start.unwrap().into();
-                start < tile_id.0.stop
+                start < tile_interval.stop
             }) + first_index;
 
             #[cfg(debug_assertions)]
@@ -869,12 +892,12 @@ impl StateDataSource {
                 for point in &points[..first_index] {
                     let time_range = cont.entry(point.entry).time_range();
                     let point_interval: ts::Interval = time_range.into();
-                    assert!(!point_interval.overlaps(tile_id.0));
+                    assert!(!point_interval.overlaps(tile_interval));
                 }
                 for point in &points[last_index..] {
                     let time_range = cont.entry(point.entry).time_range();
                     let point_interval: ts::Interval = time_range.into();
-                    assert!(!point_interval.overlaps(tile_id.0));
+                    assert!(!point_interval.overlaps(tile_interval));
                 }
             }
 
@@ -886,11 +909,12 @@ impl StateDataSource {
                     (&entry.base(), entry.time_range(), &entry.waiters());
 
                 let point_interval: ts::Interval = time_range.into();
-                assert!(point_interval.overlaps(tile_id.0));
-                let view_interval = point_interval.intersection(tile_id.0);
+                assert!(point_interval.overlaps(tile_interval));
+                let view_interval = point_interval.intersection(tile_interval);
 
                 assert_eq!(level, base.level.unwrap() as usize);
 
+                // Merge small tasks to reduce load on renderer
                 if let Some(last) = items.last_mut() {
                     let last_meta = if let Some(ref mut item_metas) = item_metas {
                         item_metas.last_mut()
@@ -926,6 +950,7 @@ impl StateDataSource {
                      wait_provenance: Option<ProvenanceID>,
                      wait_backtrace: Option<BacktraceID>,
                      wait_event: Option<EventID>,
+                     num_hidden_wait_intervals: u64,
                      find_previous_executing: bool| {
                         if !interval.overlaps(tile_id.0) {
                             return;
@@ -945,6 +970,20 @@ impl StateDataSource {
                                 item_meta
                                     .fields
                                     .insert(1, ItemField(status, Field::Interval(interval), None));
+                            }
+                            if num_hidden_wait_intervals > 0 {
+                                item_meta.fields.insert(
+                                    2,
+                                    ItemField(self.fields.hidden_waits, Field::Empty, None),
+                                );
+                                item_meta.fields.insert(
+                                    3,
+                                    ItemField(
+                                        self.fields.num_items,
+                                        Field::U64(num_hidden_wait_intervals),
+                                        None,
+                                    ),
+                                );
                             }
                             if let Some(callee) = wait_callee {
                                 // Filter out any other callee fields
@@ -1063,7 +1102,13 @@ impl StateDataSource {
                     };
                 if let Some(waiters) = waiters {
                     let mut start = time_range.start.unwrap();
+                    let mut num_hidden_wait_intervals = 0u64;
                     for wait in &waiters.wait_intervals {
+                        if !show_wait_interval(wait, tile_id, full) {
+                            num_hidden_wait_intervals += 1;
+                            continue;
+                        }
+
                         let running_interval = ts::Interval::new(start.into(), wait.start.into());
                         let waiting_interval =
                             ts::Interval::new(wait.start.into(), wait.ready.into());
@@ -1076,6 +1121,7 @@ impl StateDataSource {
                             None,
                             None,
                             None,
+                            num_hidden_wait_intervals,
                             false,
                         );
                         add_item(
@@ -1086,6 +1132,7 @@ impl StateDataSource {
                             wait.provenance,
                             wait.backtrace,
                             wait.event,
+                            0,
                             false,
                         );
                         add_item(
@@ -1096,9 +1143,11 @@ impl StateDataSource {
                             None,
                             None,
                             None,
+                            0,
                             true,
                         );
                         start = max(start, wait.end);
+                        num_hidden_wait_intervals = 0;
                     }
                     let stop = time_range.stop.unwrap();
                     if start < stop {
@@ -1111,11 +1160,12 @@ impl StateDataSource {
                             None,
                             None,
                             None,
+                            num_hidden_wait_intervals,
                             false,
                         );
                     }
                 } else {
-                    add_item(view_interval, 1.0, None, None, None, None, None, false);
+                    add_item(view_interval, 1.0, None, None, None, None, None, 0, false);
                 }
             }
         }
