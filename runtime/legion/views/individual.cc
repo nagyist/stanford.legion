@@ -1432,7 +1432,6 @@ namespace Legion {
                 else
                   rez.serialize<DistributedID>(0);
                 dst_inst.serialize(rez);
-                rez.serialize(manager->get_unique_event());
                 trace_info.pack_trace_info(rez);
                 rez.serialize(recorded);
                 rez.serialize(applied);
@@ -1514,7 +1513,6 @@ namespace Legion {
                 rez.serialize(src_mask);
                 rez.serialize(copy_mask);
                 dst_inst.serialize(rez);
-                rez.serialize(manager->get_unique_event());
                 trace_info.pack_trace_info(rez);
                 rez.serialize(recorded);
                 rez.serialize(applied);
@@ -1582,7 +1580,6 @@ namespace Legion {
               rez.serialize(copy_mask);
               rez.serialize(location);
               dst_inst.serialize(rez);
-              rez.serialize(manager->get_unique_event());
               if (src_point != nullptr)
                 rez.serialize(src_point->did);
               else
@@ -2617,6 +2614,7 @@ namespace Legion {
         Serializer& rez, const std::vector<CopySrcDstField>& fields) const
     //--------------------------------------------------------------------------
     {
+      rez.serialize(manager->get_unique_event());
       rez.serialize<size_t>(fields.size());
       for (unsigned idx = 0; idx < fields.size(); idx++)
         rez.serialize(fields[idx]);

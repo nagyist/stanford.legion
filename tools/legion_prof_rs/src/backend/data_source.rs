@@ -1781,6 +1781,142 @@ impl StateDataSource {
                     }
                 }
             }
+            EventEntryKind::MakeValid(space) => {
+                let prof_uid = event_entry.creator.unwrap();
+                if let Some(proc_id) = self.state.prof_uid_proc.get(&prof_uid) {
+                    let creation_time = event_entry.creation_time.unwrap();
+                    let trigger_time = event_entry.trigger_time.unwrap();
+                    let trigger_ts: ts::Timestamp = trigger_time.into();
+                    let space_name = if let Some(space_id) = space {
+                        if let Some(space) = self.state.find_index_space(space_id) {
+                            space.name.clone()
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    };
+                    let space_str = space_name.unwrap_or_else(|| match space {
+                        Some(id) => format!("ispace:{}", id.0),
+                        None => "anonymous".to_string(),
+                    });
+                    if creation_time < trigger_time {
+                        // Had to wait for it to trigger so the fetching of index space was the
+                        // critical path
+                        let creation_ts: ts::Timestamp = creation_time.into();
+                        let proc = self.state.procs.get(proc_id).unwrap();
+                        let entry = proc.find_executing_entry(prof_uid, creation_time).unwrap();
+                        let op_name = entry.name(&self.state);
+                        Field::ItemLink(ItemLink {
+                            item_uid: entry.base().prof_uid.into(),
+                            title: format!(
+                                "Waiting for meta data of {} requested by {} to be ready at {}",
+                                space_str, &op_name, trigger_ts
+                            ),
+                            interval: ts::Interval::new(creation_ts, trigger_ts),
+                            entry_id: self.proc_entries.get(proc_id).unwrap().clone(),
+                        })
+                    } else {
+                        // Had already triggered so the call is the critical path
+                        let creation_ts: ts::Timestamp = creation_time.into();
+                        let proc = self.state.procs.get(proc_id).unwrap();
+                        let entry = proc.find_entry(prof_uid).unwrap();
+                        let op_name = entry.name(&self.state);
+                        let proc_name = proc.name(&self.state);
+                        Field::ItemLink(ItemLink {
+                            item_uid: entry.base().prof_uid.into(),
+                            title: format!(
+                                "IndexSpace::make_valid invoked for {} created by {} on {} at {}",
+                                space_str, &op_name, proc_name, creation_ts
+                            ),
+                            interval: ts::Interval::new(
+                                entry.time_range.start.unwrap().into(),
+                                trigger_ts,
+                            ),
+                            entry_id: self.proc_entries.get(proc_id).unwrap().clone(),
+                        })
+                    }
+                } else {
+                    let fevent = self.state.find_fevent(prof_uid);
+                    let fevent_node = fevent.node_id();
+                    if fevent_node == node {
+                        Field::String(format!(
+                            "Could not find fevent {:#x} for an IndexSpace::make_valid Realm event {:#x} on node {}. This is probably a bug in the Legion runtime logging not recording all fevents on a node. You could try running with '-lg:prof_self' to see if the fevent corresponds to a profiling meta-task, but most likely this is just a bug.",
+                            fevent.0, event.0, fevent_node.0
+                        ))
+                    } else {
+                        panic!(
+                            "IndexSpace::make_valid events should always be made on the same node as their fevent"
+                        );
+                    }
+                }
+            }
+            EventEntryKind::FetchMetadata(inst_uid) => {
+                let prof_uid = event_entry.creator.unwrap();
+                if let Some(proc_id) = self.state.prof_uid_proc.get(&prof_uid) {
+                    let creation_time = event_entry.creation_time.unwrap();
+                    let trigger_time = event_entry.trigger_time.unwrap();
+                    let trigger_ts: ts::Timestamp = trigger_time.into();
+                    let inst_name = if let Some(inst) = self.state.find_inst(inst_uid) {
+                        if let Some(inst_id) = inst.inst_id {
+                            format!("inst:{:#x}", inst_id.0)
+                        } else {
+                            format!("inst_uid:{}", inst_uid.0)
+                        }
+                    } else {
+                        format!("inst_uid:{}", inst_uid.0)
+                    };
+                    if creation_time < trigger_time {
+                        // Had to wait for it to trigger so the fetching of metadata was the
+                        // critical path
+                        let creation_ts: ts::Timestamp = creation_time.into();
+                        let proc = self.state.procs.get(proc_id).unwrap();
+                        let entry = proc.find_executing_entry(prof_uid, creation_time).unwrap();
+                        let op_name = entry.name(&self.state);
+                        Field::ItemLink(ItemLink {
+                            item_uid: entry.base().prof_uid.into(),
+                            title: format!(
+                                "Waiting for meta data of {} requested by {} to be ready at {}",
+                                inst_name, &op_name, trigger_ts
+                            ),
+                            interval: ts::Interval::new(creation_ts, trigger_ts),
+                            entry_id: self.proc_entries.get(proc_id).unwrap().clone(),
+                        })
+                    } else {
+                        // Had already triggered so the call is the critical path
+                        let creation_ts: ts::Timestamp = creation_time.into();
+                        let proc = self.state.procs.get(proc_id).unwrap();
+                        let entry = proc.find_entry(prof_uid).unwrap();
+                        let op_name = entry.name(&self.state);
+                        let proc_name = proc.name(&self.state);
+                        Field::ItemLink(ItemLink {
+                            item_uid: entry.base().prof_uid.into(),
+                            title: format!(
+                                "Instance::fetch_metadata invoked for {} created by {} on {} at {}",
+                                inst_name, &op_name, proc_name, creation_ts
+                            ),
+                            interval: ts::Interval::new(
+                                entry.time_range.start.unwrap().into(),
+                                trigger_ts,
+                            ),
+                            entry_id: self.proc_entries.get(proc_id).unwrap().clone(),
+                        })
+                    }
+                } else {
+                    let fevent = self.state.find_fevent(prof_uid);
+                    let fevent_node = fevent.node_id();
+                    if fevent_node == node {
+                        Field::String(format!(
+                            "Could not find fevent {:#x} for an Instance::fetch_metadata Realm event {:#x} on node {}. This is probably a bug in the Legion runtime logging not recording all fevents on a node. You could try running with '-lg:prof_self' to see if the fevent corresponds to a profiling meta-task, but most likely this is just a bug.",
+                            fevent.0, event.0, fevent_node.0
+                        ))
+                    } else {
+                        panic!(
+                            "Instance::fetch_metadata events should always be made on the same node as their fevent"
+                        );
+                    }
+                }
+            }
             // The rest of these only happen when the critical path is not along a chain
             // of events but when the (meta-) task producing the event is the last thing
             // to actually run to enable the execution

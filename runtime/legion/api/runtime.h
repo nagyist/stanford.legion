@@ -4587,7 +4587,8 @@ namespace Legion {
      *              profiler in microseconds. All runtime and mapper calls
      *              that are less than this threshold will be discarded
      *              and will not be recorded in the profiling logs. The
-     *              default value is 0 (us) so all calls are logged.
+     *              default value is 1 (us) so all calls that take less
+     *              than 1 us are elided.
      * -lg:prof_self Perform self-profiling so that the profiling
      *              response meta-tasks are also recorded in the profile.
      *              In general these are tiny and not worth profiling,

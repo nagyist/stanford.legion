@@ -252,7 +252,7 @@ namespace Legion {
           LayoutConstraints* constraints, ApEvent use_event, LgEvent unique,
           InstanceKind kind, ReductionOpID redop, GarbageCollectionState state);
     public:
-      static ApEvent fetch_metadata(PhysicalInstance inst, ApEvent use_event);
+      ApEvent fetch_metadata(ApEvent use_event) const;
       static void process_top_view_request(
           PhysicalManager* manager, InnerContext* context,
           AddressSpaceID logical_owner, CollectiveMapping* mapping,

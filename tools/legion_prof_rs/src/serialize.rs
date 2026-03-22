@@ -159,6 +159,8 @@ pub enum Record {
     CompletionQueueInfo { result: EventID, fevent: EventID, performed: Timestamp, pre0: Option<EventID>, pre1: Option<EventID>, pre2: Option<EventID>, pre3: Option<EventID> },
     InstanceReadyInfo { result: Option<EventID>, precondition: Option<EventID>, unique: EventID, performed: Timestamp },
     InstanceRedistrictInfo { result: Option<EventID>, precondition: Option<EventID>, previous: EventID, next: EventID, performed: Timestamp },
+    MakeValidInfo { result: EventID, fevent: EventID, space: Option<ISpaceID>, created: Timestamp, triggered: Timestamp },
+    FetchMetadataInfo { result: EventID, fevent: EventID, inst_event: EventID, created: Timestamp, triggered: Timestamp },
     SpawnInfo { fevent: EventID, spawn: Timestamp },
 }
 
@@ -1427,6 +1429,40 @@ fn parse_instance_redistrict_info(input: &[u8], _max_dim: i32) -> IResult<&[u8],
         },
     ))
 }
+fn parse_make_valid_info(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
+    let (input, result) = parse_event_id(input)?;
+    let (input, fevent) = parse_event_id(input)?;
+    let (input, space) = parse_option_ispace_id(input)?;
+    let (input, created) = parse_timestamp(input)?;
+    let (input, triggered) = parse_timestamp(input)?;
+    Ok((
+        input,
+        Record::MakeValidInfo {
+            result,
+            fevent,
+            space,
+            created,
+            triggered,
+        },
+    ))
+}
+fn parse_fetch_metadata_info(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
+    let (input, result) = parse_event_id(input)?;
+    let (input, fevent) = parse_event_id(input)?;
+    let (input, inst_event) = parse_event_id(input)?;
+    let (input, created) = parse_timestamp(input)?;
+    let (input, triggered) = parse_timestamp(input)?;
+    Ok((
+        input,
+        Record::FetchMetadataInfo {
+            result,
+            fevent,
+            inst_event,
+            created,
+            triggered,
+        },
+    ))
+}
 fn parse_completion_queue_info(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
     let (input, result) = parse_event_id(input)?;
     let (input, fevent) = parse_event_id(input)?;
@@ -1627,6 +1663,8 @@ fn parse<'a>(
     insert("ReservationAcquireInfo", parse_reservation_acquire_info);
     insert("InstanceReadyInfo", parse_instance_ready_info);
     insert("InstanceRedistrictInfo", parse_instance_redistrict_info);
+    insert("MakeValidInfo", parse_make_valid_info);
+    insert("FetchMetadataInfo", parse_fetch_metadata_info);
     insert("CompletionQueueInfo", parse_completion_queue_info);
     insert("SpawnInfo", parse_spawn_info);
 

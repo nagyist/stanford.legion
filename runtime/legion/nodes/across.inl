@@ -740,7 +740,11 @@ namespace Legion {
       {
         const ApEvent valid(preimages[idx].make_valid());
         if (valid.exists())
+        {
+          if (implicit_profiler != nullptr)
+            implicit_profiler->record_make_valid(valid);
           valid_events.emplace_back(valid);
+        }
       }
       if (!valid_events.empty())
       {

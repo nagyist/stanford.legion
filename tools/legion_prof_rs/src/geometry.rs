@@ -216,7 +216,7 @@ impl ISpace {
         self
     }
     pub fn set_name(&mut self, name: &str) -> &mut Self {
-        assert!(self.name.is_none());
+        assert!(self.name.as_ref().is_none_or(|x| x == name));
         self.name = Some(name.to_owned());
         self
     }

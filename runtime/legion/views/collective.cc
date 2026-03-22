@@ -842,7 +842,6 @@ namespace Legion {
               rez.serialize(this->did);
               source_view->pack_fields(rez, src_fields);
               src_inst.serialize(rez);
-              rez.serialize(source_manager->get_unique_event());
               rez.serialize(precondition);
               rez.serialize(predicate_guard);
               copy_expression->pack_expression(rez, origin);
@@ -894,7 +893,6 @@ namespace Legion {
               rez.serialize(source_view->did);
               source_view->pack_fields(rez, src_fields);
               src_inst.serialize(rez);
-              rez.serialize(source_manager->get_unique_event());
               rez.serialize(precondition);
               rez.serialize(predicate_guard);
               copy_expression->pack_expression(rez, origin);
@@ -2068,9 +2066,11 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void CollectiveView::pack_fields(
-        Serializer& rez, const std::vector<CopySrcDstField>& fields) const
+        Serializer& rez, const std::vector<CopySrcDstField>& fields,
+        LgEvent inst_uid) const
     //--------------------------------------------------------------------------
     {
+      rez.serialize(inst_uid);
       rez.serialize<size_t>(fields.size());
       for (unsigned idx = 0; idx < fields.size(); idx++)
         rez.serialize(fields[idx]);
@@ -2116,22 +2116,33 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void CollectiveView::unpack_fields(
+    /*static*/ LgEvent CollectiveView::unpack_fields(
         std::vector<CopySrcDstField>& fields, Deserializer& derez,
         std::set<RtEvent>& ready_events, CollectiveView* view,
         RtEvent view_ready)
     //--------------------------------------------------------------------------
     {
-      legion_assert(!fields.empty());
+      LgEvent inst_uid;
+      derez.deserialize(inst_uid);
+      size_t num_fields;
+      derez.deserialize(num_fields);
+      fields.resize(num_fields);
       const Processor local_proc = Processor::get_executing_processor();
       for (unsigned idx = 0; idx < fields.size(); idx++)
       {
         CopySrcDstField& field = fields[idx];
         derez.deserialize(field);
-        // Check to see if we fetched the metadata for this instance
-        RtEvent ready(field.inst.fetch_metadata(local_proc));
-        if (ready.exists() && !ready.has_triggered())
-          ready_events.insert(ready);
+        // Only need to check this on the first iteration since all the
+        // fields should share the same instance
+        if (idx == 0)
+        {
+          // Check to see if we fetched the metadata for this instance
+          RtEvent ready(field.inst.fetch_metadata(local_proc));
+          if (implicit_profiler != nullptr)
+            implicit_profiler->record_fetch_metadata(ready, inst_uid);
+          if (ready.exists() && !ready.has_triggered())
+            ready_events.insert(ready);
+        }
       }
       if (spy_logging_level > NO_SPY_LOGGING)
       {
@@ -2180,6 +2191,7 @@ namespace Legion {
             ready_events.insert(ready);
         }
       }
+      return inst_uid;
     }
 
     //--------------------------------------------------------------------------
@@ -3095,11 +3107,9 @@ namespace Legion {
       RtEvent view_ready;
       CollectiveView* view = static_cast<CollectiveView*>(
           runtime->find_or_request_logical_view(view_did, view_ready));
-      size_t num_fields;
-      derez.deserialize(num_fields);
-      std::vector<CopySrcDstField> dst_fields(num_fields);
+      std::vector<CopySrcDstField> dst_fields;
       std::set<RtEvent> recorded_events, ready_events, applied_events;
-      CollectiveView::unpack_fields(
+      LgEvent dst_unique_event = CollectiveView::unpack_fields(
           dst_fields, derez, ready_events, view, view_ready);
       size_t num_reservations;
       derez.deserialize(num_reservations);
@@ -3124,8 +3134,6 @@ namespace Legion {
       derez.deserialize(location);
       UniqueInst dst_inst;
       dst_inst.deserialize(derez);
-      LgEvent dst_unique_event;
-      derez.deserialize(dst_unique_event);
       DistributedID src_inst_did;
       derez.deserialize(src_inst_did);
       PhysicalTraceInfo trace_info =
@@ -3297,9 +3305,8 @@ namespace Legion {
         {
           RezCheck z(rez);
           rez.serialize(did);
-          pack_fields(rez, local_fields);
+          pack_fields(rez, local_fields, local_manager->get_unique_event());
           local_inst.serialize(rez);
-          rez.serialize(local_manager->get_unique_event());
           rez.serialize(local_pre);
           rez.serialize(predicate_guard);
           copy_expression->pack_expression(rez, child);
@@ -3998,16 +4005,12 @@ namespace Legion {
       RtEvent view_ready;
       CollectiveView* view = static_cast<CollectiveView*>(
           runtime->find_or_request_logical_view(view_did, view_ready));
-      size_t num_fields;
-      derez.deserialize(num_fields);
-      std::vector<CopySrcDstField> src_fields(num_fields);
+      std::vector<CopySrcDstField> src_fields;
       std::set<RtEvent> recorded_events, ready_events, applied_events;
-      CollectiveView::unpack_fields(
+      LgEvent src_unique_event = CollectiveView::unpack_fields(
           src_fields, derez, ready_events, view, view_ready);
       UniqueInst src_inst;
       src_inst.deserialize(derez);
-      LgEvent src_unique_event;
-      derez.deserialize(src_unique_event);
       ApEvent precondition;
       derez.deserialize(precondition);
       PredEvent predicate_guard;
@@ -4137,7 +4140,6 @@ namespace Legion {
           rez.serialize(source->did);
           source->pack_fields(rez, src_fields);
           src_inst.serialize(rez);
-          rez.serialize(src_unique_event);
           rez.serialize(precondition);
           rez.serialize(predicate_guard);
           copy_expression->pack_expression(rez, child);
@@ -4280,16 +4282,12 @@ namespace Legion {
       derez.deserialize(src_did);
       ReductionView* src_view = static_cast<ReductionView*>(
           runtime->find_or_request_logical_view(src_did, src_ready));
-      size_t num_fields;
-      derez.deserialize(num_fields);
-      std::vector<CopySrcDstField> src_fields(num_fields);
+      std::vector<CopySrcDstField> src_fields;
       std::set<RtEvent> recorded_events, ready_events, applied_events;
-      CollectiveView::unpack_fields(
+      LgEvent src_unique_event = CollectiveView::unpack_fields(
           src_fields, derez, ready_events, view, view_ready);
       UniqueInst src_inst;
       src_inst.deserialize(derez);
-      LgEvent src_unique_event;
-      derez.deserialize(src_unique_event);
       ApEvent precondition;
       derez.deserialize(precondition);
       PredEvent predicate_guard;
@@ -4446,7 +4444,7 @@ namespace Legion {
         {
           RezCheck z(rez);
           rez.serialize(source->did);
-          pack_fields(rez, local_fields);
+          pack_fields(rez, local_fields, local_manager->get_unique_event());
           rez.serialize<size_t>(reservations.size());
           for (unsigned idx = 0; idx < reservations.size(); idx++)
             rez.serialize(reservations[idx]);
@@ -4460,7 +4458,6 @@ namespace Legion {
           rez.serialize(copy_mask);
           rez.serialize(src_inst_did);
           local_inst.serialize(rez);
-          rez.serialize(local_manager->get_unique_event());
           trace_info.pack_trace_info(rez);
           rez.serialize(recorded);
           rez.serialize(applied);
@@ -4543,9 +4540,8 @@ namespace Legion {
           {
             RezCheck z(rez);
             rez.serialize(this->did);
-            pack_fields(rez, local_fields);
+            pack_fields(rez, local_fields, local_manager->get_unique_event());
             local_inst.serialize(rez);
-            rez.serialize(local_manager->get_unique_event());
             rez.serialize(broadcast_pre);
             rez.serialize(predicate_guard);
             copy_expression->pack_expression(rez, child);
@@ -4893,7 +4889,7 @@ namespace Legion {
           {
             RezCheck z(rez);
             rez.serialize(source->did);
-            pack_fields(rez, dst_fields);
+            pack_fields(rez, dst_fields, local_manager->get_unique_event());
             rez.serialize<size_t>(reservations.size());
             for (unsigned idx2 = 0; idx2 < reservations.size(); idx2++)
               rez.serialize(reservations[idx2]);
@@ -4907,7 +4903,6 @@ namespace Legion {
             rez.serialize(copy_mask);  // again for dst mask
             rez.serialize(location);
             dst_inst.serialize(rez);
-            rez.serialize(local_manager->get_unique_event());
             rez.serialize(local_src_inst_did);
             inst_info.pack_trace_info(rez);
             rez.serialize(collective_kind);

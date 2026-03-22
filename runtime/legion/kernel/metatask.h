@@ -102,6 +102,7 @@ namespace Legion {
   __op__(LG_DEFER_DELETION_COMMIT_TASK_ID, ReplDeletionOp::DeferDeletionCommitArgs, "Deferred Deletion Commit") \
   __op__(LG_YIELD_TASK_ID, TaskContext::YieldArgs, "Deferred Yield") \
   __op__(LG_AUTO_TRACE_PROCESS_REPEATS_TASK_ID, TraceRecognizer::FindRepeatsTaskArgs, "Deferred Automatic Tracing Find Repeats") \
+  __op__(LG_PROFILER_DUMP_TASK_ID, LegionProfiler::ProfilerDumpArgs, "Profiler Intermediate Dump") \
   /* Nothing after the shutdown meta-task except for messsages*/ \
   __op__(LG_RETRY_SHUTDOWN_TASK_ID, ShutdownManager::RetryShutdownArgs, "Deferred Retry Shutdown") \
   /* Message ID goes at the end so we can append additional */ \

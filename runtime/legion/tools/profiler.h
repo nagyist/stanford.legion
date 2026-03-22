@@ -195,109 +195,6 @@ namespace Legion {
       timestamp_t start, stop;
     };
 
-    class LegionProfDesc {
-    public:
-      struct ProcDesc {
-      public:
-        ProcID proc_id;
-        ProcKind kind;
-#ifdef LEGION_USE_CUDA
-        Realm::Cuda::Uuid cuda_device_uuid;
-#endif
-      };
-      struct MemDesc {
-      public:
-        MemID mem_id;
-        MemKind kind;
-        unsigned long long capacity;
-      };
-      struct ProcMemDesc {
-      public:
-        ProcID proc_id;
-        MemID mem_id;
-        unsigned bandwidth;
-        unsigned latency;
-      };
-      struct TaskKind {
-      public:
-        TaskID task_id;
-        const char* name;
-        bool overwrite;
-      };
-      struct TaskVariant {
-      public:
-        TaskID task_id;
-        VariantID variant_id;
-        const char* name;
-      };
-      struct MapperName {
-        MapperID mapper_id;
-        ProcID mapper_proc;
-        const char* name;
-      };
-      struct MapperCallDesc {
-      public:
-        unsigned kind;
-        const char* name;
-      };
-      struct RuntimeCallDesc {
-      public:
-        unsigned kind;
-        const char* name;
-      };
-      struct MetaDesc {
-      public:
-        unsigned kind;
-        bool message;
-        bool ordered_vc;
-        const char* name;
-      };
-      struct OpDesc {
-      public:
-        unsigned kind;
-        const char* name;
-      };
-      struct MaxDimDesc {
-        unsigned max_dim;
-      };
-      struct RuntimeConfig {
-        bool debug;
-        bool spy;
-        bool gc;
-        bool inorder;
-        bool safe_mapper;
-        bool safe_runtime;
-        bool safe_ctrlrepl;
-        bool part_checks;
-        bool bounds_checks;
-        bool resilient;
-      };
-      struct MachineDesc {
-        unsigned node_id;
-        unsigned num_nodes;
-        Machine::ProcessInfo process_info;
-      };
-      struct CalibrationErr {
-      public:
-        long long calibration_err;
-      };
-      struct ZeroTime {
-      public:
-        long long zero_time;
-      };
-      struct Provenance {
-      public:
-        ProvenanceID pid;
-        const char* provenance;
-        size_t size;
-      };
-      struct Backtrace {
-      public:
-        unsigned long long id;
-        const char* backtrace;
-      };
-    };
-
     class LegionProfInstance {
     public:
       struct OperationInstance {
@@ -635,6 +532,22 @@ namespace Legion {
         LgEvent next;
         timestamp_t performed;
       };
+      struct MakeValidInfo {
+      public:
+        LgEvent result;
+        LgEvent fevent;
+        DistributedID space;
+        timestamp_t created;
+        timestamp_t triggered;
+      };
+      struct FetchMetadataInfo {
+      public:
+        LgEvent result;
+        LgEvent fevent;
+        LgEvent inst_uid;
+        timestamp_t created;
+        timestamp_t triggered;
+      };
       struct CompletionQueueInfo {
       public:
         LgEvent result;
@@ -658,6 +571,11 @@ namespace Legion {
     public:
       LegionProfInstance(
           LegionProfiler* owner, Processor local, LgEvent external);
+    private:
+      LegionProfInstance(
+          LegionProfiler* owner, Processor local, LgEvent external,
+          long long start);
+    public:
       LegionProfInstance(const LegionProfInstance& rhs) = delete;
       ~LegionProfInstance(void);
     public:
@@ -668,6 +586,7 @@ namespace Legion {
         return external_fevent.exists();
       }
     public:
+      LegionProfInstance* dump(void);
       void register_operation(Operation* op);
       void register_multi_task(Operation* op, TaskID kind);
       void register_slice_owner(UniqueID pid, UniqueID id);
@@ -731,6 +650,8 @@ namespace Legion {
       void record_completion_queue_event(
           LgEvent result, LgEvent fevent, timestamp_t timestamp,
           const LgEvent* preconditions, size_t count);
+      void record_make_valid(LgEvent event, DistributedID space = 0);
+      void record_fetch_metadata(LgEvent event, LgEvent inst_uid);
     public:
       void process_task(
           const ProfilingInfo* info, const Realm::ProfilingResponse& response,
@@ -757,6 +678,12 @@ namespace Legion {
           const ProfilingInfo* info,
           const Realm::ProfilingMeasurements::OperationTimeline& timeline);
       void process_async_effect(
+          const ProfilingInfo* info,
+          const Realm::ProfilingMeasurements::OperationTimeline& timeline);
+      void process_make_valid(
+          const ProfilingInfo* info,
+          const Realm::ProfilingMeasurements::OperationTimeline& timeline);
+      void process_fetch_metadata(
           const ProfilingInfo* info,
           const Realm::ProfilingMeasurements::OperationTimeline& timeline);
       void process_implicit(
@@ -787,7 +714,7 @@ namespace Legion {
           LgEvent creator, LgEvent finish_event, bool creator_complete);
     public:
       void dump_state(LegionProfSerializer* serializer);
-      size_t dump_inter(LegionProfSerializer* serializer, const double over);
+      bool dump_inter(LegionProfSerializer* serializer, const long long t_stop);
     public:
       // If this profiler instance is associated with an external thread
       // then it will have an external fevent that will eventually be
@@ -795,6 +722,10 @@ namespace Legion {
       const LgEvent external_fevent;
       const Processor local_proc;  // might be fake
       const long long external_start;
+    public:
+      // Use this for creating lock-free linked lists of profiler instances
+      std::atomic<LegionProfInstance*> next = nullptr;
+      size_t footprint = 0;
     private:
       LegionProfiler* const owner;
       std::deque<OperationInstance> operation_instances;
@@ -839,6 +770,8 @@ namespace Legion {
       std::deque<InstanceReadyInfo> instance_ready_infos;
       std::deque<InstanceRedistrictInfo> instance_redistrict_infos;
       std::deque<CompletionQueueInfo> completion_queue_infos;
+      std::deque<MakeValidInfo> make_valid_infos;
+      std::deque<FetchMetadataInfo> fetch_metadata_infos;
       std::vector<WaitInfo> external_wait_infos;
       // keep track of MemIDs/ProcIDs to avoid duplicate entries
       std::vector<MemID> mem_ids;
@@ -871,6 +804,123 @@ namespace Legion {
       public:
         ProfilingKind kind;
       };
+      struct ProfilerDumpArgs : public LgTaskArgs<ProfilerDumpArgs> {
+      public:
+        static constexpr LgTaskID TASK_ID = LG_PROFILER_DUMP_TASK_ID;
+      public:
+        ProfilerDumpArgs(void) = default;
+        ProfilerDumpArgs(LegionProfiler* prof, RtUserEvent done)
+          : LgTaskArgs<ProfilerDumpArgs>(true, true), profiler(prof),
+            dump_event(done)
+        { }
+      public:
+        void execute(void) const;
+      public:
+        LegionProfiler* profiler;
+        RtUserEvent dump_event;
+      };
+      struct MapperCallDesc {
+      public:
+        unsigned kind;
+        const char* name;
+      };
+      struct RuntimeCallDesc {
+      public:
+        unsigned kind;
+        const char* name;
+      };
+      struct MetaDesc {
+      public:
+        unsigned kind;
+        bool message;
+        bool ordered_vc;
+        const char* name;
+      };
+      struct OpDesc {
+      public:
+        unsigned kind;
+        const char* name;
+      };
+      struct MaxDimDesc {
+        unsigned max_dim;
+      };
+      struct RuntimeConfig {
+        bool debug;
+        bool spy;
+        bool gc;
+        bool inorder;
+        bool safe_mapper;
+        bool safe_runtime;
+        bool safe_ctrlrepl;
+        bool part_checks;
+        bool bounds_checks;
+        bool resilient;
+      };
+      struct MachineDesc {
+        unsigned node_id;
+        unsigned num_nodes;
+        Machine::ProcessInfo process_info;
+      };
+      struct CalibrationErr {
+      public:
+        long long calibration_err;
+      };
+      struct ZeroTime {
+      public:
+        long long zero_time;
+      };
+      struct ProcDesc {
+      public:
+        ProcID proc_id;
+        ProcKind kind;
+#ifdef LEGION_USE_CUDA
+        Realm::Cuda::Uuid cuda_device_uuid;
+#endif
+      };
+      struct MemDesc {
+      public:
+        MemID mem_id;
+        MemKind kind;
+        unsigned long long capacity;
+      };
+      struct ProcMemDesc {
+      public:
+        ProcID proc_id;
+        MemID mem_id;
+        unsigned bandwidth;
+        unsigned latency;
+      };
+      struct TaskKind {
+      public:
+        TaskID task_id;
+        std::string name;
+        bool overwrite;
+      };
+      struct TaskVariant {
+      public:
+        TaskID task_id;
+        VariantID variant_id;
+        std::string name;
+      };
+      struct MapperName {
+        MapperID mapper_id;
+        ProcID mapper_proc;
+        std::string name;
+      };
+      struct Provenance {
+      public:
+        ProvenanceID pid;
+        std::string provenance;
+      };
+      struct Backtrace {
+      public:
+        unsigned long long id;
+        std::string backtrace;
+      };
+      struct PendingBacktrace : public Backtrace {
+        uintptr_t hash;
+        PendingBacktrace* next;
+      };
     public:
       // Statically known information passed through the constructor
       // so that it can be deduplicated
@@ -897,6 +947,7 @@ namespace Legion {
       void register_task_variant(
           TaskID task_id, VariantID variant_id, const char* variant_name);
       unsigned long long find_backtrace_id(Realm::Backtrace& bt);
+      void drain_pending_backtraces(bool track_diff);
     public:
       void record_memory(Memory m);
       void record_processor(Processor p);
@@ -976,6 +1027,7 @@ namespace Legion {
     public:
       // Dump all the results
       void finalize(void);
+      void dump_instances(RtUserEvent dump_event);
     public:
       void record_mapper_name(MapperID mapper, Processor p, const char* name);
       void record_mapper_call_kinds(
@@ -995,13 +1047,22 @@ namespace Legion {
       void decrement_total_outstanding_requests(
           ProfilingKind kind, unsigned cnt = 1);
     public:
-      void measure_effect_trigger(ApEvent effect, const char* prov);
+      enum EffectKind {
+        ASYNC_EFFECT,
+        MAKE_VALID_EFFECT,
+        FETCH_METADATA_EFFECT,
+      };
+      void measure_event_trigger(
+          LgEvent effect, EffectKind kind, LgEvent fevent, size_t extra_data,
+          const char* prov = nullptr);
     public:
       void update_footprint(size_t diff, LegionProfInstance* inst);
+    protected:
+      void update_footprint(size_t diff);
     public:
       void issue_default_mapper_warning(Operation* op, const char* call_name);
     public:
-      LegionProfInstance* find_or_create_profiling_instance(void);
+      void instantiate_profiling_instance(void);
     public:
       // Event to trigger once the profiling is actually done
       const Realm::UserEvent done_event;
@@ -1023,8 +1084,7 @@ namespace Legion {
     private:
       LegionProfSerializer* serializer;
       mutable LocalLock profiler_lock;
-      std::vector<LegionProfInstance*> instances;
-      std::map<Processor, LegionProfInstance*> processor_instances;
+      std::atomic<LegionProfInstance*> instances = nullptr;
       std::map<uintptr_t, unsigned long long> backtrace_ids;
       std::vector<Memory> recorded_memories;
       std::vector<Processor> recorded_processors;
@@ -1044,6 +1104,23 @@ namespace Legion {
     private:
       // Issue the default mapper warning
       std::atomic<bool> need_default_mapper_warning;
+    private:
+      std::deque<ProcDesc> processor_descriptions;
+      std::deque<MemDesc> memory_descriptions;
+      std::deque<ProcMemDesc> procmem_affinities;
+      std::deque<TaskKind> task_kinds;
+      std::deque<TaskVariant> task_variants;
+      std::deque<Backtrace> backtraces;
+      std::deque<MapperName> mapper_names;
+      std::deque<Provenance> provenances;
+      std::atomic<PendingBacktrace*> pending_backtraces = nullptr;
+    private:
+      // Special sentinel value for indicating that we have
+      // launched a dump profile task for things which we
+      // need to dump immediately, but is not a valid instances
+      static constexpr uintptr_t DUMP_NOW = 0xbeebbeeb;
+      std::atomic<LegionProfInstance*> dump_list = nullptr;
+      RtEvent last_dump_task;
     };
 
   }  // namespace Internal
