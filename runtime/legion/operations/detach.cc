@@ -272,6 +272,8 @@ namespace Legion {
     {
       legion_assert(index == 0);
       // TODO: invoke the mapper
+      std::deque<MappingInstance> dummy_out;
+      compute_ranking(nullptr, dummy_out, sources, ranking, points);
     }
 
     //--------------------------------------------------------------------------
@@ -1167,7 +1169,10 @@ namespace Legion {
         std::map<unsigned, PhysicalManager*>& points)
     //--------------------------------------------------------------------------
     {
+      legion_assert(index == 0);
       // TODO: invoke the mapper
+      std::deque<MappingInstance> dummy_out;
+      compute_ranking(nullptr, dummy_out, sources, ranking, points);
     }
 
     //--------------------------------------------------------------------------

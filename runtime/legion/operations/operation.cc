@@ -1905,6 +1905,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ranking.reserve(output.size());
+      std::vector<bool> unique_sources(sources.size(), false);
       for (const MappingInstance& mapping_instance : output)
       {
         const InstanceManager* man = mapping_instance.impl;
@@ -1924,7 +1925,22 @@ namespace Legion {
           if (src->get_manager() == manager)
           {
             found = true;
-            ranking.emplace_back(idx);
+            if (unique_sources[idx])
+            {
+              Warning warning;
+              warning
+                  << "Detected duplicate entries of physical instance "
+                  << output[idx] << " in select sources call for " << *this
+                  << " by mapper " << *mapper << ". This may be indicative of "
+                  << "a mapper bug. Legion will ignore later entries of this "
+                  << "instance in the ranking.";
+              warning.raise();
+            }
+            else
+            {
+              ranking.emplace_back(idx);
+              unique_sources[idx] = true;
+            }
             break;
           }
         }
@@ -1939,8 +1955,20 @@ namespace Legion {
             {
               found = true;
               // Only need to save the first instance from each collective
-              if (collective_insts.find(idx) == collective_insts.end())
+              if (unique_sources[idx])
               {
+                Warning warning;
+                warning
+                    << "Detected duplicate points of collective view "
+                    << output[idx] << " in select sources call for " << *this
+                    << " by mapper " << *mapper << ". This may be indicative "
+                    << "of a mapper bug. Legion will ignore later entries of "
+                    << "this instance in the ranking.";
+                warning.raise();
+              }
+              else
+              {
+                unique_sources[idx] = true;
                 ranking.emplace_back(idx);
                 collective_insts[idx] = manager;
                 break;
@@ -1957,6 +1985,15 @@ namespace Legion {
           warning.raise();
         }
       }
+      legion_assert(ranking.size() <= sources.size());
+      // Fill in any sources not covered by the mapper
+      if (ranking.size() < sources.size())
+      {
+        for (unsigned idx = 0; idx < sources.size(); idx++)
+          if (!unique_sources[idx])
+            ranking.push_back(idx);
+      }
+      legion_assert(ranking.size() == sources.size());
     }
 
     //--------------------------------------------------------------------------
