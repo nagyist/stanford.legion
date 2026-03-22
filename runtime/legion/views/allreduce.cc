@@ -194,7 +194,7 @@ namespace Legion {
         {
           RezCheck z(rez);
           rez.serialize(did);
-          pack_fields(rez, local_fields);
+          pack_fields(rez, local_fields, local_manager->get_unique_event());
           rez.serialize<size_t>(local_reservations.size());
           for (unsigned idx = 0; idx < local_reservations.size(); idx++)
             rez.serialize(local_reservations[idx]);
@@ -208,7 +208,6 @@ namespace Legion {
           rez.serialize(dst_mask);
           rez.serialize<DistributedID>(0);  // no source point in this case
           local_inst.serialize(rez);
-          rez.serialize(local_manager->get_unique_event());
           trace_info.pack_trace_info(rez);
           rez.serialize(recorded);
           rez.serialize(applied);
@@ -529,11 +528,9 @@ namespace Legion {
       RtEvent view_ready;
       AllreduceView* view = static_cast<AllreduceView*>(
           runtime->find_or_request_logical_view(view_did, view_ready));
-      size_t num_fields;
-      derez.deserialize(num_fields);
-      std::vector<CopySrcDstField> dst_fields(num_fields);
+      std::vector<CopySrcDstField> dst_fields;
       std::set<RtEvent> recorded_events, ready_events, applied_events;
-      AllreduceView::unpack_fields(
+      LgEvent dst_unique_event = AllreduceView::unpack_fields(
           dst_fields, derez, ready_events, view, view_ready);
       size_t num_reservations;
       derez.deserialize(num_reservations);
@@ -558,8 +555,6 @@ namespace Legion {
       derez.deserialize(src_inst_did);
       UniqueInst dst_inst;
       dst_inst.deserialize(derez);
-      LgEvent dst_unique_event;
-      derez.deserialize(dst_unique_event);
       PhysicalTraceInfo trace_info =
           PhysicalTraceInfo::unpack_trace_info(derez);
       RtUserEvent recorded, applied;
@@ -644,7 +639,7 @@ namespace Legion {
         {
           RezCheck z(rez);
           rez.serialize(this->did);
-          pack_fields(rez, dst_fields);
+          pack_fields(rez, dst_fields, dst_unique_event);
           rez.serialize<size_t>(reservations.size());
           for (unsigned idx = 0; idx < reservations.size(); idx++)
             rez.serialize(reservations[idx]);
@@ -657,7 +652,6 @@ namespace Legion {
           rez.serialize(copy_mask);
           rez.serialize(dst_mask);
           dst_inst.serialize(rez);
-          rez.serialize(dst_unique_event);
           trace_info.pack_trace_info(rez);
           rez.serialize(recorded);
           rez.serialize(applied);
@@ -740,11 +734,9 @@ namespace Legion {
       RtEvent view_ready;
       AllreduceView* view = static_cast<AllreduceView*>(
           runtime->find_or_request_logical_view(view_did, view_ready));
-      size_t num_fields;
-      derez.deserialize(num_fields);
-      std::vector<CopySrcDstField> dst_fields(num_fields);
+      std::vector<CopySrcDstField> dst_fields;
       std::set<RtEvent> recorded_events, ready_events, applied_events;
-      AllreduceView::unpack_fields(
+      LgEvent dst_unique_event = AllreduceView::unpack_fields(
           dst_fields, derez, ready_events, view, view_ready);
       size_t num_reservations;
       derez.deserialize(num_reservations);
@@ -767,8 +759,6 @@ namespace Legion {
       derez.deserialize(dst_mask);
       UniqueInst dst_inst;
       dst_inst.deserialize(derez);
-      LgEvent dst_unique_event;
-      derez.deserialize(dst_unique_event);
       PhysicalTraceInfo trace_info =
           PhysicalTraceInfo::unpack_trace_info(derez);
       RtUserEvent recorded, applied;
@@ -1673,9 +1663,10 @@ namespace Legion {
           rez.serialize(allreduce_tag);
           rez.serialize(local_rank);
           rez.serialize(stage);
-          pack_fields(rez, src_fields);
+          pack_fields(
+              rez, src_fields,
+              local_views[src_index]->manager->get_unique_event());
           src_inst.serialize(rez);
-          rez.serialize(local_views[src_index]->manager->get_unique_event());
           rez.serialize(precondition);
           rez.serialize<bool>(trace_info.recording);
           if (trace_info.recording)
@@ -1930,16 +1921,12 @@ namespace Legion {
       derez.deserialize(src_rank);
       int stage;
       derez.deserialize(stage);
-      size_t num_src_fields;
-      derez.deserialize(num_src_fields);
-      std::vector<CopySrcDstField> src_fields(num_src_fields);
+      std::vector<CopySrcDstField> src_fields;
       std::set<RtEvent> ready_events;
-      AllreduceView::unpack_fields(
+      LgEvent src_unique_event = AllreduceView::unpack_fields(
           src_fields, derez, ready_events, view, ready);
       UniqueInst src_inst;
       src_inst.deserialize(derez);
-      LgEvent src_unique_event;
-      derez.deserialize(src_unique_event);
       ApEvent src_precondition;
       derez.deserialize(src_precondition);
       bool recording;

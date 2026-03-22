@@ -74,8 +74,7 @@ namespace Legion {
       if (kind != UNBOUND_INSTANCE_KIND)
       {
         legion_assert(instance.exists());
-        Runtime::trigger_event_untraced(
-            use_event, fetch_metadata(instance, u_event));
+        Runtime::trigger_event_untraced(use_event, fetch_metadata(u_event));
         if (is_owner() && (runtime->profiler != nullptr))
           implicit_profiler->register_physical_instance_spaces(
               unique_event, inst_domain->record_profiler_expression(),
@@ -1911,13 +1910,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ ApEvent PhysicalManager::fetch_metadata(
-        PhysicalInstance inst, ApEvent use_event)
+    ApEvent PhysicalManager::fetch_metadata(ApEvent use_event) const
     //--------------------------------------------------------------------------
     {
-      ApEvent ready(inst.fetch_metadata(Processor::get_executing_processor()));
+      ApEvent ready(
+          instance.fetch_metadata(Processor::get_executing_processor()));
       if (!use_event.exists())
         return ready;
+      if (implicit_profiler != nullptr)
+        implicit_profiler->record_fetch_metadata(ready, unique_event);
       if (!ready.exists())
         return use_event;
       return Runtime::merge_events(nullptr, ready, use_event);
@@ -2493,7 +2494,7 @@ namespace Legion {
           broadcast_manager_update();
 
         Runtime::trigger_event_untraced(
-            use_event, fetch_metadata(instance, producer_event));
+            use_event, fetch_metadata(producer_event));
       }
       return remove_base_valid_ref(PENDING_UNBOUND_REF);
     }

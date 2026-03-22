@@ -1017,8 +1017,14 @@ impl Proc {
             self.entries.insert(*task_uid, task_entry);
         }
         // Finally update all the backtrace event waits we have left
-        for (task_uid, waiters) in self.event_waits.iter_mut() {
-            let task_entry = self.entries.get_mut(task_uid).unwrap();
+        for (task_uid, mut waiters) in std::mem::take(&mut self.event_waits) {
+            let Some(task_entry) = self.entries.get_mut(&task_uid) else {
+                // This occurs when we have waits in tasks that are not profiled
+                // It sometimes occurs in Legion when there is a wait in profiling
+                // response task, but we're not doing self profiling. It's safe
+                // to ignore in this case.
+                continue;
+            };
             for wait in task_entry.waiters.wait_intervals.iter_mut() {
                 if let Some(event) = wait.event {
                     if let Some((backtrace, provenance)) = waiters.remove(&event) {
@@ -1028,7 +1034,6 @@ impl Proc {
                 }
             }
         }
-        self.event_waits.clear();
     }
 
     fn sort_time_range(&mut self) {
@@ -3378,6 +3383,8 @@ pub enum EventEntryKind {
     InstanceRedistrict,
     InstanceDeletion,
     CompletionQueueEvent,
+    MakeValid(Option<ISpaceID>),
+    FetchMetadata(ProfUID),
     ExternalEvent(ProvenanceID), // Events made from Realm modules
 }
 
@@ -3494,8 +3501,10 @@ impl State {
                     EventEntry::new(kind, Some(creator), Some(creation_time), trigger_time);
             } else if deduplicate {
                 match kind {
-                    EventEntryKind::ExternalEvent(_) => {
-                        // Should still both be external events, but possibly with
+                    EventEntryKind::ExternalEvent(_)
+                    | EventEntryKind::MakeValid(_)
+                    | EventEntryKind::FetchMetadata(_) => {
+                        // Should still both be the same kind of events, but possibly with
                         // different provenance values
                         assert!(
                             std::mem::discriminant(&kind)
@@ -4024,6 +4033,10 @@ impl State {
         let mem_id = self.insts.get(&inst_uid)?;
         let mem = self.mems.get(mem_id)?;
         mem.insts.get(&inst_uid)
+    }
+
+    pub fn find_index_space(&self, ispace_id: ISpaceID) -> Option<&ISpace> {
+        self.index_spaces.get(&ispace_id)
     }
 
     fn find_index_space_mut(&mut self, ispace_id: ISpaceID) -> &mut ISpace {
@@ -5765,6 +5778,41 @@ fn process_record(
                     state.event_graph.add_edge(src, dst, ());
                 }
             }
+        }
+        Record::MakeValidInfo {
+            result,
+            fevent,
+            space,
+            created,
+            triggered,
+        } => {
+            let creator_uid = state.create_fevent_reference(*fevent);
+            state.record_event_node(
+                *result,
+                EventEntryKind::MakeValid(*space),
+                creator_uid,
+                *created,
+                Some(*triggered),
+                true, /*deduplicate*/
+            );
+        }
+        Record::FetchMetadataInfo {
+            result,
+            fevent,
+            inst_event,
+            created,
+            triggered,
+        } => {
+            let creator_uid = state.create_fevent_reference(*fevent);
+            let inst_uid = state.create_fevent_reference(*inst_event);
+            state.record_event_node(
+                *result,
+                EventEntryKind::FetchMetadata(inst_uid),
+                creator_uid,
+                *created,
+                Some(*triggered),
+                true, /*deduplicate*/
+            );
         }
         Record::SpawnInfo { fevent, spawn } => {
             let task_uid = state.create_fevent_reference(*fevent);

@@ -260,8 +260,7 @@ namespace Legion {
       if (runtime->profiler != nullptr)
       {
         if (implicit_profiler == nullptr)
-          implicit_profiler =
-              runtime->profiler->find_or_create_profiling_instance();
+          runtime->profiler->instantiate_profiling_instance();
         if (!previous_external_time)
           previous_external_time = Realm::Clock::current_time_in_nanoseconds();
       }

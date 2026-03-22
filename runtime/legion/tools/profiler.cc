@@ -302,9 +302,72 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    LegionProfInstance::LegionProfInstance(
+        LegionProfiler* own, Processor local, LgEvent ext, long long start)
+      : external_fevent(ext), local_proc(local), external_start(start),
+        owner(own)
+    //--------------------------------------------------------------------------
+    { }
+
+    //--------------------------------------------------------------------------
     LegionProfInstance::~LegionProfInstance(void)
     //--------------------------------------------------------------------------
     { }
+
+    //--------------------------------------------------------------------------
+    LegionProfInstance* LegionProfInstance::dump(void)
+    //--------------------------------------------------------------------------
+    {
+      LegionProfInstance* dump = new LegionProfInstance(
+          owner, local_proc, external_fevent, external_start);
+      operation_instances.swap(dump->operation_instances);
+      multi_tasks.swap(dump->multi_tasks);
+      slice_owners.swap(dump->slice_owners);
+      task_infos.swap(dump->task_infos);
+      implicit_infos.swap(dump->implicit_infos);
+      gpu_task_infos.swap(dump->gpu_task_infos);
+      ispace_rect_desc.swap(dump->ispace_rect_desc);
+      ispace_point_desc.swap(dump->ispace_point_desc);
+      ispace_empty_desc.swap(dump->ispace_empty_desc);
+      field_desc.swap(dump->field_desc);
+      field_space_desc.swap(dump->field_space_desc);
+      index_part_desc.swap(dump->index_part_desc);
+      index_space_desc.swap(dump->index_space_desc);
+      index_subspace_desc.swap(dump->index_subspace_desc);
+      index_partition_desc.swap(dump->index_partition_desc);
+      lr_desc.swap(dump->lr_desc);
+      phy_inst_rdesc.swap(dump->phy_inst_rdesc);
+      phy_inst_layout_rdesc.swap(dump->phy_inst_layout_rdesc);
+      phy_inst_dim_order_rdesc.swap(dump->phy_inst_dim_order_rdesc);
+      phy_inst_spaces.swap(dump->phy_inst_spaces);
+      phy_inst_usage.swap(dump->phy_inst_usage);
+      index_space_size_desc.swap(dump->index_space_size_desc);
+      meta_infos.swap(dump->meta_infos);
+      message_infos.swap(dump->message_infos);
+      copy_infos.swap(dump->copy_infos);
+      fill_infos.swap(dump->fill_infos);
+      inst_timeline_infos.swap(dump->inst_timeline_infos);
+      partition_infos.swap(dump->partition_infos);
+      mapper_call_infos.swap(dump->mapper_call_infos);
+      runtime_call_infos.swap(dump->runtime_call_infos);
+      application_call_infos.swap(dump->application_call_infos);
+      async_effect_infos.swap(dump->async_effect_infos);
+      event_wait_infos.swap(dump->event_wait_infos);
+      event_merger_infos.swap(dump->event_merger_infos);
+      event_trigger_infos.swap(dump->event_trigger_infos);
+      event_poison_infos.swap(dump->event_poison_infos);
+      barrier_arrival_infos.swap(dump->barrier_arrival_infos);
+      reservation_acquire_infos.swap(dump->reservation_acquire_infos);
+      instance_ready_infos.swap(dump->instance_ready_infos);
+      instance_redistrict_infos.swap(dump->instance_redistrict_infos);
+      completion_queue_infos.swap(dump->completion_queue_infos);
+      make_valid_infos.swap(dump->make_valid_infos);
+      fetch_metadata_infos.swap(dump->fetch_metadata_infos);
+      external_wait_infos.swap(dump->external_wait_infos);
+      prof_task_infos.swap(dump->prof_task_infos);
+      footprint = 0;
+      return dump;
+    }
 
     //--------------------------------------------------------------------------
     void LegionProfInstance::register_operation(Operation* op)
@@ -857,6 +920,58 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    void LegionProfInstance::record_make_valid(
+        LgEvent event, DistributedID space)
+    //--------------------------------------------------------------------------
+    {
+      if (!event.exists() || owner->no_critical_paths)
+        return;
+      bool poisoned = false;
+      if (event.has_triggered_faultaware(poisoned) || poisoned)
+      {
+        MakeValidInfo& info = make_valid_infos.emplace_back(MakeValidInfo());
+        // Do this first to make it look like it triggered before
+        // we created the event which it probably did
+        info.triggered = Realm::Clock::current_time_in_nanoseconds();
+        info.created = Realm::Clock::current_time_in_nanoseconds();
+        info.result = event;
+        info.space = space;
+        info.fevent = implicit_fevent;
+        owner->update_footprint(sizeof(info), this);
+      }
+      else
+        owner->measure_event_trigger(
+            event, LegionProfiler::MAKE_VALID_EFFECT, implicit_fevent, space);
+    }
+
+    //--------------------------------------------------------------------------
+    void LegionProfInstance::record_fetch_metadata(
+        LgEvent event, LgEvent inst_uid)
+    //--------------------------------------------------------------------------
+    {
+      if (!event.exists() || owner->no_critical_paths)
+        return;
+      bool poisoned = false;
+      if (event.has_triggered_faultaware(poisoned) || poisoned)
+      {
+        FetchMetadataInfo& info =
+            fetch_metadata_infos.emplace_back(FetchMetadataInfo());
+        // Do this first to make it look like it triggered before
+        // we created the event which it probably did
+        info.triggered = Realm::Clock::current_time_in_nanoseconds();
+        info.created = Realm::Clock::current_time_in_nanoseconds();
+        info.result = event;
+        info.inst_uid = inst_uid;
+        info.fevent = implicit_fevent;
+        owner->update_footprint(sizeof(info), this);
+      }
+      else
+        owner->measure_event_trigger(
+            event, LegionProfiler::FETCH_METADATA_EFFECT, implicit_fevent,
+            inst_uid.id);
+    }
+
+    //--------------------------------------------------------------------------
     void LegionProfInstance::process_task(
         const ProfilingInfo* prof_info,
         const Realm::ProfilingResponse& response,
@@ -866,18 +981,16 @@ namespace Legion {
       legion_assert(response.has_measurement<
                     Realm::ProfilingMeasurements::OperationTimeline>());
       Realm::ProfilingMeasurements::OperationTimeline timeline;
-      response.get_measurement<Realm::ProfilingMeasurements::OperationTimeline>(
-          timeline);
+      if (!response.get_measurement(timeline))
+        std::abort();
       Realm::ProfilingMeasurements::OperationEventWaits waits;
-      response
-          .get_measurement<Realm::ProfilingMeasurements::OperationEventWaits>(
-              waits);
+      if (!response.get_measurement(waits))
+        std::abort();
       legion_assert(timeline.is_valid());
       if (prof_info->critical.is_barrier())
         record_barrier_use(prof_info->critical, prof_info->op_id);
       Realm::ProfilingMeasurements::OperationTimelineGPU timeline_gpu;
-      if (response.get_measurement<
-              Realm::ProfilingMeasurements::OperationTimelineGPU>(timeline_gpu))
+      if (response.get_measurement(timeline_gpu))
       {
         legion_assert(timeline_gpu.is_valid());
         gpu_task_infos.emplace_back(GPUTaskInfo());
@@ -911,8 +1024,9 @@ namespace Legion {
         info.creator = prof_info->creator;
         info.critical = prof_info->critical;
         Realm::ProfilingMeasurements::OperationFinishEvent finish;
-        if (response.get_measurement(finish))
-          info.finish_event = LgEvent(finish.finish_event);
+        if (!response.get_measurement(finish))
+          std::abort();
+        info.finish_event = LgEvent(finish.finish_event);
         const size_t diff =
             sizeof(GPUTaskInfo) + num_intervals * sizeof(WaitInfo);
         owner->update_footprint(diff, this);
@@ -946,8 +1060,9 @@ namespace Legion {
         info.creator = prof_info->creator;
         info.critical = prof_info->critical;
         Realm::ProfilingMeasurements::OperationFinishEvent finish;
-        if (response.get_measurement(finish))
-          info.finish_event = LgEvent(finish.finish_event);
+        if (!response.get_measurement(finish))
+          std::abort();
+        info.finish_event = LgEvent(finish.finish_event);
         const size_t diff = sizeof(TaskInfo) + num_intervals * sizeof(WaitInfo);
         owner->update_footprint(diff, this);
       }
@@ -963,12 +1078,11 @@ namespace Legion {
       legion_assert(response.has_measurement<
                     Realm::ProfilingMeasurements::OperationTimeline>());
       Realm::ProfilingMeasurements::OperationTimeline timeline;
-      response.get_measurement<Realm::ProfilingMeasurements::OperationTimeline>(
-          timeline);
+      if (!response.get_measurement(timeline))
+        std::abort();
       Realm::ProfilingMeasurements::OperationEventWaits waits;
-      response
-          .get_measurement<Realm::ProfilingMeasurements::OperationEventWaits>(
-              waits);
+      if (!response.get_measurement(waits))
+        std::abort();
       legion_assert(timeline.is_valid());
       meta_infos.emplace_back(MetaInfo());
       MetaInfo& info = meta_infos.back();
@@ -998,8 +1112,9 @@ namespace Legion {
       if (prof_info->critical.is_barrier())
         record_barrier_use(prof_info->critical, prof_info->op_id);
       Realm::ProfilingMeasurements::OperationFinishEvent finish;
-      if (response.get_measurement(finish))
-        info.finish_event = LgEvent(finish.finish_event);
+      if (!response.get_measurement(finish))
+        std::abort();
+      info.finish_event = LgEvent(finish.finish_event);
       const size_t diff = sizeof(MetaInfo) + num_intervals * sizeof(WaitInfo);
       owner->update_footprint(diff, this);
     }
@@ -1011,6 +1126,12 @@ namespace Legion {
         const Realm::ProfilingMeasurements::OperationProcessorUsage& usage)
     //--------------------------------------------------------------------------
     {
+      Realm::ProfilingMeasurements::OperationFinishEvent finish;
+      if (!response.get_measurement(finish))
+        std::abort();
+      // Do this first to avoid leaking anything
+      const LgEvent original_fevent = owner->find_message_fevent(
+          LgEvent(finish.finish_event), true /*remove*/);
       // Do a quick check to see if this is a message task we're profiling
       // If it is then we only profile it if we're self-profiling the profiler
       const MessageKind kind = (MessageKind)(prof_info->id - LG_MESSAGE_ID);
@@ -1021,12 +1142,11 @@ namespace Legion {
       legion_assert(response.has_measurement<
                     Realm::ProfilingMeasurements::OperationTimeline>());
       Realm::ProfilingMeasurements::OperationTimeline timeline;
-      response.get_measurement<Realm::ProfilingMeasurements::OperationTimeline>(
-          timeline);
+      if (!response.get_measurement(timeline))
+        std::abort();
       Realm::ProfilingMeasurements::OperationEventWaits waits;
-      response
-          .get_measurement<Realm::ProfilingMeasurements::OperationEventWaits>(
-              waits);
+      if (!response.get_measurement(waits))
+        std::abort();
       legion_assert(timeline.is_valid());
       message_infos.emplace_back(MessageInfo());
       MessageInfo& info = message_infos.back();
@@ -1054,16 +1174,10 @@ namespace Legion {
       }
       info.creator = prof_info->creator;
       info.critical = prof_info->critical;
+      info.finish_event = original_fevent;
       if (prof_info->critical.is_barrier())
         record_barrier_use(prof_info->critical, prof_info->op_id);
-      Realm::ProfilingMeasurements::OperationFinishEvent finish;
-      if (response.get_measurement(finish))
-      {
-        const LgEvent original_event = LgEvent(finish.finish_event);
-        // Lookup the renamed fevent that we gave it
-        info.finish_event =
-            owner->find_message_fevent(original_event, true /*remove*/);
-      }
+
       const size_t diff =
           sizeof(MessageInfo) + num_intervals * sizeof(WaitInfo);
       owner->update_footprint(diff, this);
@@ -1084,18 +1198,17 @@ namespace Legion {
                     Realm::ProfilingMeasurements::OperationFinishEvent>());
 
       Realm::ProfilingMeasurements::OperationCopyInfo cpinfo;
-      response.get_measurement<Realm::ProfilingMeasurements::OperationCopyInfo>(
-          cpinfo);
+      if (!response.get_measurement(cpinfo))
+        std::abort();
 
       Realm::ProfilingMeasurements::OperationTimeline timeline;
-      response.get_measurement<Realm::ProfilingMeasurements::OperationTimeline>(
-          timeline);
+      if (!response.get_measurement(timeline))
+        std::abort();
 
       Realm::ProfilingMeasurements::OperationFinishEvent fevent;
       fevent.finish_event = Realm::Event::NO_EVENT;
-      response
-          .get_measurement<Realm::ProfilingMeasurements::OperationFinishEvent>(
-              fevent);
+      if (!response.get_measurement(fevent))
+        std::abort();
 
       legion_assert(timeline.is_valid());
       copy_infos.emplace_back(CopyInfo());
@@ -1261,12 +1374,12 @@ namespace Legion {
       legion_assert(response.has_measurement<
                     Realm::ProfilingMeasurements::OperationTimeline>());
       Realm::ProfilingMeasurements::OperationCopyInfo cpinfo;
-      response.get_measurement<Realm::ProfilingMeasurements::OperationCopyInfo>(
-          cpinfo);
+      if (!response.get_measurement(cpinfo))
+        std::abort();
 
       Realm::ProfilingMeasurements::OperationTimeline timeline;
-      response.get_measurement<Realm::ProfilingMeasurements::OperationTimeline>(
-          timeline);
+      if (!response.get_measurement(timeline))
+        std::abort();
       legion_assert(timeline.is_valid());
       fill_infos.emplace_back(FillInfo());
       FillInfo& info = fill_infos.back();
@@ -1278,8 +1391,9 @@ namespace Legion {
       // use complete_time instead of end_time to include async work
       info.stop = timeline.complete_time;
       Realm::ProfilingMeasurements::OperationFinishEvent fevent;
-      if (response.get_measurement(fevent))
-        info.fevent = LgEvent(fevent.finish_event);
+      if (!response.get_measurement(fevent))
+        std::abort();
+      info.fevent = LgEvent(fevent.finish_event);
       info.collective = (CollectiveKind)prof_info->id;
       InstanceNameClosure* closure = prof_info->extra.closure;
       info.fill_expr = closure->find_copy_expression();
@@ -1352,8 +1466,8 @@ namespace Legion {
       if (!response.get_measurement(fevent) || !fevent.finish_event.exists())
         return;
       Realm::ProfilingMeasurements::OperationTimeline timeline;
-      response.get_measurement<Realm::ProfilingMeasurements::OperationTimeline>(
-          timeline);
+      if (!response.get_measurement(timeline))
+        std::abort();
       partition_infos.emplace_back(PartitionInfo());
       PartitionInfo& info = partition_infos.back();
       info.op_id = prof_info->op_id;
@@ -1418,6 +1532,35 @@ namespace Legion {
       info.created = timeline.create_time;
       info.triggered = timeline.ready_time;
       info.pid = prof_info->id;
+    }
+
+    //--------------------------------------------------------------------------
+    void LegionProfInstance::process_make_valid(
+        const ProfilingInfo* prof_info,
+        const Realm::ProfilingMeasurements::OperationTimeline& timeline)
+    //--------------------------------------------------------------------------
+    {
+      MakeValidInfo& info = make_valid_infos.emplace_back(MakeValidInfo());
+      info.result = prof_info->critical;
+      info.fevent = prof_info->creator;
+      info.space = prof_info->id;
+      info.created = timeline.create_time;
+      info.triggered = timeline.ready_time;
+    }
+
+    //--------------------------------------------------------------------------
+    void LegionProfInstance::process_fetch_metadata(
+        const ProfilingInfo* prof_info,
+        const Realm::ProfilingMeasurements::OperationTimeline& timeline)
+    //--------------------------------------------------------------------------
+    {
+      FetchMetadataInfo& info =
+          fetch_metadata_infos.emplace_back(FetchMetadataInfo());
+      info.result = prof_info->critical;
+      info.fevent = prof_info->creator;
+      info.inst_uid.id = prof_info->id;
+      info.created = timeline.create_time;
+      info.triggered = timeline.ready_time;
     }
 
     //--------------------------------------------------------------------------
@@ -1595,7 +1738,8 @@ namespace Legion {
           info.pid = 0;
       }
       else
-        owner->measure_effect_trigger(effect, prov);
+        owner->measure_event_trigger(
+            effect, LegionProfiler::ASYNC_EFFECT, implicit_fevent, 0, prov);
     }
 
     //--------------------------------------------------------------------------
@@ -1657,169 +1801,97 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (const OperationInstance& op_instance : operation_instances)
-      {
         serializer->serialize(op_instance);
-      }
       for (const MultiTask& multi_task : multi_tasks)
-      {
         serializer->serialize(multi_task);
-      }
       for (const SliceOwner& slice_owner : slice_owners)
-      {
         serializer->serialize(slice_owner);
-      }
       for (const TaskInfo& task_info : task_infos)
       {
         serializer->serialize(task_info, false /*not implicit*/);
         for (const WaitInfo& wait_info : task_info.wait_intervals)
-        {
           serializer->serialize(wait_info, task_info);
-        }
       }
       for (const TaskInfo& task_info : implicit_infos)
       {
         serializer->serialize(task_info, true /*implicit*/);
         for (const WaitInfo& wait_info : task_info.wait_intervals)
-        {
           serializer->serialize(wait_info, task_info);
-        }
       }
       for (const GPUTaskInfo& gpu_task_info : gpu_task_infos)
       {
         serializer->serialize(gpu_task_info);
         for (const WaitInfo& wait_info : gpu_task_info.wait_intervals)
-        {
           serializer->serialize(wait_info, gpu_task_info);
-        }
       }
       for (const IndexSpaceRectDesc& rect_desc : ispace_rect_desc)
-      {
         serializer->serialize(rect_desc);
-      }
-
       for (const IndexSpacePointDesc& point_desc : ispace_point_desc)
-      {
         serializer->serialize(point_desc);
-      }
       for (const IndexSpaceEmptyDesc& empty_desc : ispace_empty_desc)
-      {
         serializer->serialize(empty_desc);
-      }
       for (const FieldDesc& field_desc_item : field_desc)
-      {
         serializer->serialize(field_desc_item);
-      }
       for (const FieldSpaceDesc& field_space_desc_item : field_space_desc)
-      {
         serializer->serialize(field_space_desc_item);
-      }
+      for (const IndexSpaceDesc& index_space_desc_item : index_space_desc)
+        serializer->serialize(index_space_desc_item);
       for (const IndexPartDesc& index_part_desc_item : index_part_desc)
-      {
         serializer->serialize(index_part_desc_item);
-      }
-
       for (const IndexSubSpaceDesc& index_subspace_desc_item :
            index_subspace_desc)
-      {
         serializer->serialize(index_subspace_desc_item);
-      }
-
       for (const IndexPartitionDesc& index_partition_desc_item :
            index_partition_desc)
-      {
         serializer->serialize(index_partition_desc_item);
-      }
-
       for (const LogicalRegionDesc& lr_desc_item : lr_desc)
-      {
         serializer->serialize(lr_desc_item);
-      }
-
       for (const PhysicalInstRegionDesc& phy_inst_region_desc : phy_inst_rdesc)
-      {
         serializer->serialize(phy_inst_region_desc);
-      }
       for (const PhysicalInstLayoutDesc& phy_inst_layout_desc :
            phy_inst_layout_rdesc)
-      {
         serializer->serialize(phy_inst_layout_desc);
-      }
-
       for (const PhysicalInstDimOrderDesc& phy_inst_dim_order_desc :
            phy_inst_dim_order_rdesc)
-      {
         serializer->serialize(phy_inst_dim_order_desc);
-      }
-
       for (const PhysicalInstanceSpaces& phy_inst_space : phy_inst_spaces)
-      {
         serializer->serialize(phy_inst_space);
-      }
-
       for (const PhysicalInstanceUsage& phy_inst_usage_item : phy_inst_usage)
-      {
         serializer->serialize(phy_inst_usage_item);
-      }
-
       for (const IndexSpaceSizeDesc& index_space_size_desc_item :
            index_space_size_desc)
-      {
         serializer->serialize(index_space_size_desc_item);
-      }
-
       for (const MetaInfo& meta_info : meta_infos)
       {
         serializer->serialize(meta_info);
         for (const WaitInfo& wait_info : meta_info.wait_intervals)
-        {
           serializer->serialize(wait_info, meta_info);
-        }
       }
       for (const MessageInfo& message_info : message_infos)
       {
         serializer->serialize(message_info);
         for (const WaitInfo& wait_info : message_info.wait_intervals)
-        {
           serializer->serialize(wait_info, message_info);
-        }
       }
       for (const FillInfo& fill_info : fill_infos)
-      {
         serializer->serialize(fill_info);
-      }
       for (const CopyInfo& copy_info : copy_infos)
-      {
         serializer->serialize(copy_info);
-      }
       for (const InstTimelineInfo& inst_timeline_info : inst_timeline_infos)
-      {
         serializer->serialize(inst_timeline_info);
-      }
       for (const PartitionInfo& partition_info : partition_infos)
-      {
         serializer->serialize(partition_info);
-      }
       for (const MapperCallInfo& mapper_call_info : mapper_call_infos)
-      {
         serializer->serialize(mapper_call_info);
-      }
       for (const RuntimeCallInfo& runtime_call_info : runtime_call_infos)
-      {
         serializer->serialize(runtime_call_info);
-      }
       for (const ApplicationCallInfo& application_call_info :
            application_call_infos)
-      {
         serializer->serialize(application_call_info);
-      }
       for (const AsyncEffectInfo& async_effect_info : async_effect_infos)
-      {
         serializer->serialize(async_effect_info);
-      }
       for (const EventWaitInfo& event_wait_info : event_wait_infos)
-      {
         serializer->serialize(event_wait_info);
-      }
       for (const EventMergerInfo& event_merger_info : event_merger_infos)
         serializer->serialize(event_merger_info);
       for (const EventTriggerInfo& event_trigger_info : event_trigger_infos)
@@ -1840,12 +1912,15 @@ namespace Legion {
       for (const CompletionQueueInfo& completion_queue_info :
            completion_queue_infos)
         serializer->serialize(completion_queue_info);
+      for (const MakeValidInfo& make_valid_info : make_valid_infos)
+        serializer->serialize(make_valid_info);
+      for (const FetchMetadataInfo& fetch_metadata_info : fetch_metadata_infos)
+        serializer->serialize(fetch_metadata_info);
       for (const ProfTaskInfo& prof_task_info : prof_task_infos)
-      {
         serializer->serialize(prof_task_info);
-      }
       operation_instances.clear();
       multi_tasks.clear();
+      slice_owners.clear();
       task_infos.clear();
       implicit_infos.clear();
       gpu_task_infos.clear();
@@ -1859,9 +1934,11 @@ namespace Legion {
       index_subspace_desc.clear();
       index_partition_desc.clear();
       lr_desc.clear();
-      phy_inst_layout_rdesc.clear();
       phy_inst_rdesc.clear();
+      phy_inst_layout_rdesc.clear();
       phy_inst_dim_order_rdesc.clear();
+      phy_inst_spaces.clear();
+      phy_inst_usage.clear();
       index_space_size_desc.clear();
       meta_infos.clear();
       message_infos.clear();
@@ -1870,12 +1947,21 @@ namespace Legion {
       inst_timeline_infos.clear();
       partition_infos.clear();
       mapper_call_infos.clear();
+      runtime_call_infos.clear();
+      application_call_infos.clear();
+      async_effect_infos.clear();
       event_wait_infos.clear();
       event_merger_infos.clear();
       event_trigger_infos.clear();
       event_poison_infos.clear();
       barrier_arrival_infos.clear();
       reservation_acquire_infos.clear();
+      instance_ready_infos.clear();
+      instance_redistrict_infos.clear();
+      completion_queue_infos.clear();
+      make_valid_infos.clear();
+      fetch_metadata_infos.clear();
+      prof_task_infos.clear();
       // Finally if we're an external thread, dump our implicit
       // top-level task information for ourselves
       if (external_fevent.exists())
@@ -1897,44 +1983,33 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    size_t LegionProfInstance::dump_inter(
-        LegionProfSerializer* serializer, const double over)
+    bool LegionProfInstance::dump_inter(
+        LegionProfSerializer* serializer, const long long t_stop)
     //--------------------------------------------------------------------------
     {
-      // Start the timing so we know how long we are taking
-      const long long t_start = Realm::Clock::current_time_in_microseconds();
-      // Scale our latency by how much we are over the space limit
-      const long long t_stop = t_start + over * owner->output_target_latency;
-      size_t diff = 0;
       while (!operation_instances.empty())
       {
         OperationInstance& front = operation_instances.front();
         serializer->serialize(front);
-        diff += sizeof(front);
         operation_instances.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!multi_tasks.empty())
       {
         MultiTask& front = multi_tasks.front();
         serializer->serialize(front);
-        diff += sizeof(front);
         multi_tasks.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!slice_owners.empty())
       {
         SliceOwner& front = slice_owners.front();
         serializer->serialize(front);
-        diff += sizeof(front);
         slice_owners.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!task_infos.empty())
       {
@@ -1943,11 +2018,9 @@ namespace Legion {
         // Have to do all of these now
         for (const WaitInfo& wait_info : front.wait_intervals)
           serializer->serialize(wait_info, front);
-        diff += sizeof(front) + front.wait_intervals.size() * sizeof(WaitInfo);
         task_infos.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!implicit_infos.empty())
       {
@@ -1956,175 +2029,153 @@ namespace Legion {
         // Have to do all of these now
         for (const WaitInfo& wait_info : front.wait_intervals)
           serializer->serialize(wait_info, front);
-        diff += sizeof(front) + front.wait_intervals.size() * sizeof(WaitInfo);
         implicit_infos.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
+      }
+      while (!gpu_task_infos.empty())
+      {
+        GPUTaskInfo& front = gpu_task_infos.front();
+        serializer->serialize(front);
+        // Have to do all of these now
+        for (const WaitInfo& wait_info : front.wait_intervals)
+          serializer->serialize(wait_info, front);
+        gpu_task_infos.pop_front();
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!ispace_rect_desc.empty())
       {
         IndexSpaceRectDesc& front = ispace_rect_desc.front();
         serializer->serialize(front);
-        diff += sizeof(front);
         ispace_rect_desc.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!ispace_point_desc.empty())
       {
         IndexSpacePointDesc& front = ispace_point_desc.front();
         serializer->serialize(front);
-        diff += sizeof(front);
         ispace_point_desc.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!ispace_empty_desc.empty())
       {
         IndexSpaceEmptyDesc& front = ispace_empty_desc.front();
         serializer->serialize(front);
-        diff += sizeof(front);
         ispace_empty_desc.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!field_desc.empty())
       {
         FieldDesc& front = field_desc.front();
         serializer->serialize(front);
-        diff += sizeof(front) + strlen(front.name);
         free(const_cast<char*>(front.name));
         field_desc.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!field_space_desc.empty())
       {
         FieldSpaceDesc& front = field_space_desc.front();
         serializer->serialize(front);
-        diff += sizeof(front) + strlen(front.name);
         free(const_cast<char*>(front.name));
         field_space_desc.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!index_part_desc.empty())
       {
         IndexPartDesc& front = index_part_desc.front();
         serializer->serialize(front);
-        diff += sizeof(front) + strlen(front.name);
         free(const_cast<char*>(front.name));
         index_part_desc.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!index_space_desc.empty())
       {
         IndexSpaceDesc& front = index_space_desc.front();
         serializer->serialize(front);
-        diff += sizeof(front) + strlen(front.name);
         free(const_cast<char*>(front.name));
         index_space_desc.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!index_subspace_desc.empty())
       {
         IndexSubSpaceDesc& front = index_subspace_desc.front();
         serializer->serialize(front);
-        diff += sizeof(front);
         index_subspace_desc.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!index_partition_desc.empty())
       {
         IndexPartitionDesc& front = index_partition_desc.front();
         serializer->serialize(front);
-        diff += sizeof(front);
         index_partition_desc.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!lr_desc.empty())
       {
         LogicalRegionDesc& front = lr_desc.front();
         serializer->serialize(front);
-        diff += sizeof(front) + strlen(front.name);
         free(const_cast<char*>(front.name));
         lr_desc.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!phy_inst_rdesc.empty())
       {
         PhysicalInstRegionDesc& front = phy_inst_rdesc.front();
         serializer->serialize(front);
-        diff += sizeof(front);
         phy_inst_rdesc.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!phy_inst_dim_order_rdesc.empty())
       {
         PhysicalInstDimOrderDesc& front = phy_inst_dim_order_rdesc.front();
         serializer->serialize(front);
-        diff += sizeof(front);
         phy_inst_dim_order_rdesc.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!phy_inst_spaces.empty())
       {
         PhysicalInstanceSpaces& spaces = phy_inst_spaces.front();
         serializer->serialize(spaces);
-        diff += sizeof(spaces);
         phy_inst_spaces.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!phy_inst_usage.empty())
       {
         PhysicalInstanceUsage& usage = phy_inst_usage.front();
         serializer->serialize(usage);
-        diff += sizeof(usage);
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        phy_inst_usage.pop_front();
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!index_space_size_desc.empty())
       {
         IndexSpaceSizeDesc& front = index_space_size_desc.front();
         serializer->serialize(front);
-        diff += sizeof(front);
         index_space_size_desc.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!phy_inst_layout_rdesc.empty())
       {
         PhysicalInstLayoutDesc& front = phy_inst_layout_rdesc.front();
         serializer->serialize(front);
-        diff += sizeof(front);
         phy_inst_layout_rdesc.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!meta_infos.empty())
       {
@@ -2133,11 +2184,9 @@ namespace Legion {
         // Have to do all of these now
         for (const WaitInfo& wait_info : front.wait_intervals)
           serializer->serialize(wait_info, front);
-        diff += sizeof(front) + front.wait_intervals.size() * sizeof(WaitInfo);
         meta_infos.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!message_infos.empty())
       {
@@ -2146,193 +2195,171 @@ namespace Legion {
         // Have to do all of these now
         for (const WaitInfo& wait_info : front.wait_intervals)
           serializer->serialize(wait_info, front);
-        diff += sizeof(front) + front.wait_intervals.size() * sizeof(WaitInfo);
         message_infos.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!copy_infos.empty())
       {
         CopyInfo& front = copy_infos.front();
         serializer->serialize(front);
-        diff += sizeof(front) + front.inst_infos.size() * sizeof(CopyInstInfo);
         copy_infos.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!fill_infos.empty())
       {
         FillInfo& front = fill_infos.front();
         serializer->serialize(front);
-        diff += sizeof(front) + front.inst_infos.size() * sizeof(FillInstInfo);
         fill_infos.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!inst_timeline_infos.empty())
       {
         InstTimelineInfo& front = inst_timeline_infos.front();
         serializer->serialize(front);
-        diff += sizeof(front);
         inst_timeline_infos.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!partition_infos.empty())
       {
         PartitionInfo& front = partition_infos.front();
         serializer->serialize(front);
-        diff += sizeof(front);
         partition_infos.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!mapper_call_infos.empty())
       {
         MapperCallInfo& front = mapper_call_infos.front();
         serializer->serialize(front);
-        diff += sizeof(front);
         mapper_call_infos.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!runtime_call_infos.empty())
       {
         RuntimeCallInfo& front = runtime_call_infos.front();
         serializer->serialize(front);
-        diff += sizeof(front);
         runtime_call_infos.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!application_call_infos.empty())
       {
         ApplicationCallInfo& front = application_call_infos.front();
         serializer->serialize(front);
-        diff += sizeof(front);
         application_call_infos.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!async_effect_infos.empty())
       {
         AsyncEffectInfo& front = async_effect_infos.front();
         serializer->serialize(front);
-        diff += sizeof(front);
         async_effect_infos.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!event_wait_infos.empty())
       {
         EventWaitInfo& info = event_wait_infos.front();
         serializer->serialize(info);
-        diff += sizeof(info);
         event_wait_infos.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!event_merger_infos.empty())
       {
         EventMergerInfo& info = event_merger_infos.front();
         serializer->serialize(info);
-        diff += (sizeof(info) + (info.preconditions.size() * sizeof(LgEvent)));
         event_merger_infos.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!event_trigger_infos.empty())
       {
         EventTriggerInfo& info = event_trigger_infos.front();
         serializer->serialize(info);
-        diff += sizeof(info);
         event_trigger_infos.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!event_poison_infos.empty())
       {
         EventPoisonInfo& info = event_poison_infos.front();
         serializer->serialize(info);
-        diff += sizeof(info);
         event_poison_infos.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!barrier_arrival_infos.empty())
       {
         BarrierArrivalInfo& info = barrier_arrival_infos.front();
         serializer->serialize(info);
-        diff += sizeof(info);
         barrier_arrival_infos.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!reservation_acquire_infos.empty())
       {
         ReservationAcquireInfo& info = reservation_acquire_infos.front();
         serializer->serialize(info);
-        diff += sizeof(info);
         reservation_acquire_infos.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!instance_ready_infos.empty())
       {
         InstanceReadyInfo& info = instance_ready_infos.front();
         serializer->serialize(info);
-        diff += sizeof(info);
         instance_ready_infos.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!instance_redistrict_infos.empty())
       {
         InstanceRedistrictInfo& info = instance_redistrict_infos.front();
         serializer->serialize(info);
-        diff += sizeof(info);
         instance_redistrict_infos.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!completion_queue_infos.empty())
       {
         CompletionQueueInfo& info = completion_queue_infos.front();
         serializer->serialize(info);
-        diff += (sizeof(info) + (info.preconditions.size() * sizeof(LgEvent)));
         completion_queue_infos.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
+      }
+      while (!make_valid_infos.empty())
+      {
+        MakeValidInfo& info = make_valid_infos.front();
+        serializer->serialize(info);
+        make_valid_infos.pop_front();
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
+      }
+      while (!fetch_metadata_infos.empty())
+      {
+        FetchMetadataInfo& info = fetch_metadata_infos.front();
+        serializer->serialize(info);
+        fetch_metadata_infos.pop_front();
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
       while (!prof_task_infos.empty())
       {
         ProfTaskInfo& front = prof_task_infos.front();
         serializer->serialize(front);
-        diff += sizeof(front);
         prof_task_infos.pop_front();
-        const long long t_curr = Realm::Clock::current_time_in_microseconds();
-        if (t_curr >= t_stop)
-          return diff;
+        if (t_stop <= Realm::Clock::current_time_in_microseconds())
+          return false;
       }
-      return diff;
+      return true;
     }
 
     //--------------------------------------------------------------------------
@@ -2420,7 +2447,7 @@ namespace Legion {
       }
 
       // log machine info, this needs to be the first log
-      LegionProfDesc::MachineDesc machine_desc;
+      MachineDesc machine_desc;
 
       machine.get_process_info(target, &machine_desc.process_info);
       machine_desc.node_id = static_cast<unsigned>(runtime->address_space);
@@ -2429,14 +2456,14 @@ namespace Legion {
 
       serializer->serialize(machine_desc);
 
-      LegionProfDesc::ZeroTime zero_time;
+      ZeroTime zero_time;
       zero_time.zero_time = Legion::Runtime::get_zero_time();
 
       serializer->serialize(zero_time);
 
       for (unsigned idx = 0; idx < num_meta_tasks; idx++)
       {
-        LegionProfDesc::MetaDesc meta_desc;
+        MetaDesc meta_desc;
         meta_desc.kind = idx;
         meta_desc.message = false;
         meta_desc.ordered_vc = false;
@@ -2446,7 +2473,7 @@ namespace Legion {
       // Messages are appended as kinds of meta descriptions
       for (unsigned idx = 0; idx < num_message_kinds; idx++)
       {
-        LegionProfDesc::MetaDesc meta_desc;
+        MetaDesc meta_desc;
         meta_desc.kind = num_meta_tasks + idx;
         meta_desc.message = true;
         const VirtualChannelKind vc =
@@ -2457,17 +2484,17 @@ namespace Legion {
       }
       for (unsigned idx = 0; idx < num_operation_kinds; idx++)
       {
-        LegionProfDesc::OpDesc op_desc;
+        OpDesc op_desc;
         op_desc.kind = idx;
         op_desc.name = operation_kind_descriptions[idx];
         serializer->serialize(op_desc);
       }
       // log max dim
-      LegionProfDesc::MaxDimDesc max_dim_desc;
+      MaxDimDesc max_dim_desc;
       max_dim_desc.max_dim = LEGION_MAX_DIM;
       serializer->serialize(max_dim_desc);
       // Log the runtime configuration
-      const LegionProfDesc::RuntimeConfig config = {
+      const RuntimeConfig config = {
 #ifdef LEGION_DEBUG
           true,
 #else
@@ -2503,8 +2530,14 @@ namespace Legion {
     LegionProfiler::~LegionProfiler(void)
     //--------------------------------------------------------------------------
     {
-      for (LegionProfInstance* const & instance : instances) delete instance;
-
+      LegionProfInstance* inst = instances.load();
+      while (inst != nullptr)
+      {
+        LegionProfInstance* next = inst->next;
+        delete inst;
+        inst = next;
+      }
+      legion_assert(dump_list == nullptr);
       // remove our serializer
       delete serializer;
     }
@@ -2523,15 +2556,10 @@ namespace Legion {
         TaskID task_id, const char* name, bool overwrite)
     //--------------------------------------------------------------------------
     {
-      const LegionProfDesc::TaskKind task_kind = {task_id, name, overwrite};
-      if (!serializer->is_thread_safe())
-      {
-        // Need a lock to protect the serializer
-        AutoLock p_lock(profiler_lock);
-        serializer->serialize(task_kind);
-      }
-      else
-        serializer->serialize(task_kind);
+      AutoLock p_lock(profiler_lock);
+      const TaskKind& kind =
+          task_kinds.emplace_back(TaskKind{task_id, name, overwrite});
+      update_footprint(sizeof(kind) + kind.name.size());
     }
 
     //--------------------------------------------------------------------------
@@ -2539,34 +2567,35 @@ namespace Legion {
         TaskID task_id, VariantID variant_id, const char* variant_name)
     //--------------------------------------------------------------------------
     {
-      const LegionProfDesc::TaskVariant task_variant = {
-          task_id, variant_id, variant_name};
-      if (!serializer->is_thread_safe())
-      {
-        // Need a lock to protect the serializer
-        AutoLock p_lock(profiler_lock);
-        serializer->serialize(task_variant);
-      }
-      else
-        serializer->serialize(task_variant);
+      AutoLock p_lock(profiler_lock);
+      const TaskVariant& variant = task_variants.emplace_back(
+          TaskVariant{task_id, variant_id, variant_name});
+      update_footprint(sizeof(variant) + variant.name.size());
     }
 
     //--------------------------------------------------------------------------
     unsigned long long LegionProfiler::find_backtrace_id(Realm::Backtrace& bt)
     //--------------------------------------------------------------------------
     {
+      // Very important: we cannot block in this function!
+      // It is called within the event wait code so we can't wait on
+      // any events ourselves. We need to defer this code out to the future
+      // if we do need to do any blocking behavior.
       const uintptr_t hash = bt.hash();
       {
-        AutoLock p_lock(profiler_lock, false /*exclusive*/);
-        std::map<uintptr_t, unsigned long long>::const_iterator finder =
-            backtrace_ids.find(hash);
-        if (finder != backtrace_ids.end())
-          return finder->second;
+        AutoTryLock p_lock(profiler_lock, false /*exclusive*/);
+        if (p_lock.has_lock())
+        {
+          std::map<uintptr_t, unsigned long long>::const_iterator finder =
+              backtrace_ids.find(hash);
+          if (finder != backtrace_ids.end())
+            return finder->second;
+        }
       }
       // First time seeing this backtrace so capture the symbols
       std::stringstream ss;
       ss << bt;
-      const std::string str = ss.str();
+      std::string str = ss.str();
       // Need this for computing the ID of the backtrace
       std::vector<std::string> symbols;
       bt.print_symbols(symbols);
@@ -2582,19 +2611,60 @@ namespace Legion {
       hasher.finalize(hashes);
       const unsigned long long result = hashes[0] ^ hashes[1];
       // Now retake the lock and see if we lost the race
-      AutoLock p_lock(profiler_lock);
-      std::map<uintptr_t, unsigned long long>::const_iterator finder =
-          backtrace_ids.find(hash);
-      if (finder != backtrace_ids.end())
+      AutoTryLock p_lock(profiler_lock);
+      if (p_lock.has_lock())
       {
-        legion_assert(finder->second == result);
-        return finder->second;
+        drain_pending_backtraces(true /*update footprint*/);
+        std::map<uintptr_t, unsigned long long>::const_iterator finder =
+            backtrace_ids.find(hash);
+        if (finder != backtrace_ids.end())
+        {
+          legion_assert(finder->second == result);
+          return finder->second;
+        }
+        // Didn't lose the race so generate a new ID for this backtrace
+        backtrace_ids[hash] = result;
+        const Backtrace& backtrace =
+            backtraces.emplace_back(Backtrace{result, std::move(str)});
+        update_footprint(sizeof(backtrace) + backtrace.backtrace.size());
       }
-      // Didn't lose the race so generate a new ID for this backtrace
-      const LegionProfDesc::Backtrace backtrace = {result, str.c_str()};
-      serializer->serialize(backtrace);
-      backtrace_ids[hash] = result;
+      else
+      {
+        // Make a pending backtrace and add it to the lock-free list
+        PendingBacktrace* pending =
+            new PendingBacktrace{{result, std::move(str)}, hash, nullptr};
+        PendingBacktrace* head = pending_backtraces.load();
+        pending->next = head;
+        while (!pending_backtraces.compare_exchange_weak(head, pending))
+          pending->next = head;
+      }
       return result;
+    }
+
+    //--------------------------------------------------------------------------
+    void LegionProfiler::drain_pending_backtraces(bool track_diff)
+    //--------------------------------------------------------------------------
+    {
+      // Atomically swap the entire list out and then drain it
+      PendingBacktrace* bt = pending_backtraces.exchange(nullptr);
+      size_t diff = 0;
+      while (bt != nullptr)
+      {
+        // See if we need to save it
+        if (backtrace_ids.find(bt->hash) == backtrace_ids.end())
+        {
+          backtrace_ids[bt->hash] = bt->id;
+          const Backtrace& backtrace = backtraces.emplace_back(
+              Backtrace{bt->id, std::move(bt->backtrace)});
+          if (track_diff)
+            diff += sizeof(backtrace) + backtrace.backtrace.size();
+        }
+        PendingBacktrace* next = bt->next;
+        delete bt;
+        bt = next;
+      }
+      if (diff > 0)
+        update_footprint(diff);
     }
 
     //--------------------------------------------------------------------------
@@ -2630,14 +2700,14 @@ namespace Legion {
       if (std::binary_search(
               recorded_processors.begin(), recorded_processors.end(), p))
         return;
-      LegionProfDesc::ProcDesc proc;
+      ProcDesc& proc = processor_descriptions.emplace_back(ProcDesc());
       proc.proc_id = p.id;
       proc.kind = p.kind();
 #ifdef LEGION_USE_CUDA
       if (!Realm::Cuda::get_cuda_device_uuid(p, &proc.cuda_device_uuid))
         proc.cuda_device_uuid[0] = 0;
 #endif
-      serializer->serialize(proc);
+      update_footprint(sizeof(proc));
       recorded_processors.emplace_back(p);
       std::sort(recorded_processors.begin(), recorded_processors.end());
       std::vector<Memory> memories_to_log;
@@ -2654,14 +2724,16 @@ namespace Legion {
     void LegionProfiler::record_affinities(std::vector<Memory>& memories_to_log)
     //--------------------------------------------------------------------------
     {
+      size_t total_update = 0;
       while (!memories_to_log.empty())
       {
         const Memory m = memories_to_log.back();
         memories_to_log.pop_back();
         // Eagerly log the processor description to the logging file so
         // that it appears before anything that needs it
-        const LegionProfDesc::MemDesc mem = {m.id, m.kind(), m.capacity()};
-        serializer->serialize(mem);
+        const MemDesc& mem = memory_descriptions.emplace_back(
+            MemDesc{m.id, m.kind(), m.capacity()});
+        total_update += sizeof(mem);
         recorded_memories.emplace_back(m);
         std::sort(recorded_memories.begin(), recorded_memories.end());
         std::vector<ProcessorMemoryAffinity> memory_affinities;
@@ -2673,7 +2745,7 @@ namespace Legion {
                   recorded_processors.begin(), recorded_processors.end(),
                   mem_affinity.p))
           {
-            LegionProfDesc::ProcDesc proc;
+            ProcDesc& proc = processor_descriptions.emplace_back(ProcDesc());
             proc.proc_id = mem_affinity.p.id;
             proc.kind = mem_affinity.p.kind();
 #ifdef LEGION_USE_CUDA
@@ -2681,7 +2753,7 @@ namespace Legion {
                     mem_affinity.p, &proc.cuda_device_uuid))
               proc.cuda_device_uuid[0] = 0;
 #endif
-            serializer->serialize(proc);
+            total_update += sizeof(proc);
             recorded_processors.emplace_back(mem_affinity.p);
             std::sort(recorded_processors.begin(), recorded_processors.end());
             std::vector<ProcessorMemoryAffinity> processor_affinities;
@@ -2694,12 +2766,14 @@ namespace Legion {
                       proc_affinity.m))
                 memories_to_log.emplace_back(proc_affinity.m);
           }
-          const LegionProfDesc::ProcMemDesc info = {
-              mem_affinity.p.id, m.id, mem_affinity.bandwidth,
-              mem_affinity.latency};
-          serializer->serialize(info);
+          const ProcMemDesc& affinity =
+              procmem_affinities.emplace_back(ProcMemDesc{
+                  mem_affinity.p.id, m.id, mem_affinity.bandwidth,
+                  mem_affinity.latency});
+          total_update += sizeof(affinity);
         }
       }
+      update_footprint(total_update);
     }
 
     //--------------------------------------------------------------------------
@@ -2726,21 +2800,15 @@ namespace Legion {
       external_implicit_task = runtime->generate_dynamic_task_id(false);
       // Record the processor kind as being an I/O kind so that the profiler
       // renders all implicit top-level tasks separately
-      LegionProfDesc::ProcDesc desc;
+      ProcDesc& desc = processor_descriptions.emplace_back(ProcDesc());
       desc.proc_id = proc;
       desc.kind = Processor::NO_KIND;
-      serializer->serialize(desc);
       // Also record a task and variant for external threads
-      LegionProfDesc::TaskKind external_task;
-      external_task.task_id = *external_implicit_task;
-      external_task.name = "External Thread";
-      external_task.overwrite = true;
-      serializer->serialize(external_task);
-      LegionProfDesc::TaskVariant external_variant;
-      external_variant.task_id = *external_implicit_task;
-      external_variant.variant_id = 0;
-      external_variant.name = "External Thread";
-      serializer->serialize(external_variant);
+      const TaskKind& kind = task_kinds.emplace_back(
+          TaskKind{*external_implicit_task, "External Thread", true});
+      const TaskVariant& variant = task_variants.emplace_back(
+          TaskVariant{*external_implicit_task, 0, "External Thread"});
+      update_footprint(sizeof(desc) + sizeof(kind) + sizeof(variant));
       return proc;
     }
 
@@ -3146,9 +3214,7 @@ namespace Legion {
           {
             Realm::ProfilingMeasurements::OperationProcessorUsage usage;
             // Check for predication and speculation
-            if (response.get_measurement<
-                    Realm::ProfilingMeasurements::OperationProcessorUsage>(
-                    usage))
+            if (response.get_measurement(usage))
             {
               implicit_profiler->process_proc_desc(usage.proc);
               implicit_profiler->process_task(info, response, usage);
@@ -3159,9 +3225,7 @@ namespace Legion {
           {
             Realm::ProfilingMeasurements::OperationProcessorUsage usage;
             // Check for predication and speculation
-            if (response.get_measurement<
-                    Realm::ProfilingMeasurements::OperationProcessorUsage>(
-                    usage))
+            if (response.get_measurement(usage))
             {
               implicit_profiler->process_proc_desc(usage.proc);
               implicit_profiler->process_meta(info, response, usage);
@@ -3172,9 +3236,7 @@ namespace Legion {
           {
             Realm::ProfilingMeasurements::OperationProcessorUsage usage;
             // Check for predication and speculation
-            if (response.get_measurement<
-                    Realm::ProfilingMeasurements::OperationProcessorUsage>(
-                    usage))
+            if (response.get_measurement(usage))
             {
               implicit_profiler->process_proc_desc(usage.proc);
               implicit_profiler->process_message(info, response, usage);
@@ -3185,8 +3247,7 @@ namespace Legion {
           {
             Realm::ProfilingMeasurements::OperationMemoryUsage usage;
             // Check for predication and speculation
-            if (response.get_measurement<
-                    Realm::ProfilingMeasurements::OperationMemoryUsage>(usage))
+            if (response.get_measurement(usage))
             {
               implicit_profiler->process_mem_desc(usage.source);
               implicit_profiler->process_mem_desc(usage.target);
@@ -3198,8 +3259,7 @@ namespace Legion {
           {
             Realm::ProfilingMeasurements::OperationMemoryUsage usage;
             // Check for predication and speculation
-            if (response.get_measurement<
-                    Realm::ProfilingMeasurements::OperationMemoryUsage>(usage))
+            if (response.get_measurement(usage))
             {
               implicit_profiler->process_mem_desc(usage.target);
               implicit_profiler->process_fill(info, response, usage);
@@ -3236,13 +3296,15 @@ namespace Legion {
         case LEGION_PROF_ARRIVAL:
           {
             Realm::ProfilingMeasurements::OperationTimeline timeline;
-            if (response.get_measurement(timeline))
-              implicit_profiler->process_arrival(info, timeline);
+            if (!response.get_measurement(timeline))
+              std::abort();
+            implicit_profiler->process_arrival(info, timeline);
             break;
           }
         case LEGION_PROF_BARRIER:
           {
             Realm::ProfilingMeasurements::OperationStatus status;
+            // Check for predication and specuation
             if (response.get_measurement(status) &&
                 (status.result == Realm::ProfilingMeasurements::
                                       OperationStatus::COMPLETED_SUCCESSFULLY))
@@ -3256,8 +3318,20 @@ namespace Legion {
         case LEGION_PROF_TRIGGER:
           {
             Realm::ProfilingMeasurements::OperationTimeline timeline;
-            if (response.get_measurement(timeline))
-              implicit_profiler->process_async_effect(info, timeline);
+            if (!response.get_measurement(timeline))
+              std::abort();
+            switch (static_cast<EffectKind>(info->extra.id2))
+            {
+              case ASYNC_EFFECT:
+                implicit_profiler->process_async_effect(info, timeline);
+                break;
+              case MAKE_VALID_EFFECT:
+                implicit_profiler->process_make_valid(info, timeline);
+                break;
+              case FETCH_METADATA_EFFECT:
+                implicit_profiler->process_fetch_metadata(info, timeline);
+                break;
+            }
             break;
           }
         default:
@@ -3283,13 +3357,12 @@ namespace Legion {
         else
         {
           Realm::ProfilingMeasurements::OperationFinishEvent finish;
-          if (response.get_measurement(finish))
-          {
-            const long long stop = Realm::Clock::current_time_in_nanoseconds();
-            implicit_profiler->record_proftask(
-                proc, info->op_id, start, stop, LgEvent(finish.finish_event),
-                implicit_fevent, true /*completion*/);
-          }
+          if (!response.get_measurement(finish))
+            std::abort();
+          const long long stop = Realm::Clock::current_time_in_nanoseconds();
+          implicit_profiler->record_proftask(
+              proc, info->op_id, start, stop, LgEvent(finish.finish_event),
+              implicit_fevent, true /*completion*/);
         }
       }
       decrement_total_outstanding_requests(info->kind);
@@ -3303,15 +3376,33 @@ namespace Legion {
     {
       // Remove our guard outstanding request
       decrement_total_outstanding_requests(LEGION_PROF_META);
-      LegionProfDesc::CalibrationErr calibration_err;
+      CalibrationErr calibration_err;
       calibration_err.calibration_err = Realm::Clock::get_calibration_error();
-      serializer->serialize(calibration_err);
       if (!done_event.has_triggered())
         done_event.wait();
-      for (LegionProfInstance* const & instance : instances)
+      // Make sure the last dumping task is done as well
+      if (!last_dump_task.has_triggered())
+        last_dump_task.wait();
+      for (const ProcDesc& proc : processor_descriptions)
+        serializer->serialize(proc);
+      for (const MemDesc& mem : memory_descriptions) serializer->serialize(mem);
+      for (const ProcMemDesc& desc : procmem_affinities)
+        serializer->serialize(desc);
+      for (const TaskKind& kind : task_kinds) serializer->serialize(kind);
+      for (const TaskVariant& variant : task_variants)
+        serializer->serialize(variant);
+      drain_pending_backtraces(false /*update footprint*/);
+      for (const Backtrace& bt : backtraces) serializer->serialize(bt);
+      for (const MapperName& mapper : mapper_names)
+        serializer->serialize(mapper);
+      for (const Provenance& prov : provenances) serializer->serialize(prov);
+      LegionProfInstance* inst = instances;
+      while (inst != nullptr)
       {
-        instance->dump_state(serializer);
+        inst->dump_state(serializer);
+        inst = inst->next.load();
       }
+      serializer->serialize(calibration_err);
     }
 
     //--------------------------------------------------------------------------
@@ -3319,15 +3410,10 @@ namespace Legion {
         MapperID mapper, Processor proc, const char* name)
     //--------------------------------------------------------------------------
     {
-      LegionProfDesc::MapperName mapper_name = {mapper, proc.id, name};
-      if (!serializer->is_thread_safe())
-      {
-        // Need a lock to protect the serializer
-        AutoLock p_lock(profiler_lock);
-        serializer->serialize(mapper_name);
-      }
-      else
-        serializer->serialize(mapper_name);
+      AutoLock p_lock(profiler_lock);
+      const MapperName& entry =
+          mapper_names.emplace_back(MapperName{mapper, proc.id, name});
+      update_footprint(sizeof(entry) + entry.name.size());
     }
 
     //--------------------------------------------------------------------------
@@ -3338,7 +3424,7 @@ namespace Legion {
     {
       for (unsigned idx = 0; idx < num_mapper_calls; idx++)
       {
-        LegionProfDesc::MapperCallDesc mapper_call_desc;
+        MapperCallDesc mapper_call_desc;
         mapper_call_desc.kind = idx;
         mapper_call_desc.name = mapper_call_names[idx];
         serializer->serialize(mapper_call_desc);
@@ -3353,7 +3439,7 @@ namespace Legion {
     {
       for (unsigned idx = 0; idx < num_runtime_calls; idx++)
       {
-        LegionProfDesc::RuntimeCallDesc runtime_call_desc;
+        RuntimeCallDesc runtime_call_desc;
         runtime_call_desc.kind = idx;
         runtime_call_desc.name = runtime_call_names[idx];
         serializer->serialize(runtime_call_desc);
@@ -3365,17 +3451,10 @@ namespace Legion {
         ProvenanceID pid, const char* provenance, size_t size)
     //--------------------------------------------------------------------------
     {
-      LegionProfDesc::Provenance prov = {pid, provenance, size};
-      // This one cannot be buffered, we need to log it right away so that it is
-      // available to the profiler for all logging statements that come after it
-      if (!serializer->is_thread_safe())
-      {
-        // Need a lock to protect the serializer
-        AutoLock p_lock(profiler_lock);
-        serializer->serialize(prov);
-      }
-      else
-        serializer->serialize(prov);
+      AutoLock p_lock(profiler_lock);
+      const Provenance& prov = provenances.emplace_back(
+          Provenance{pid, std::string(provenance, size)});
+      update_footprint(sizeof(prov) + prov.provenance.size());
     }
 
     //--------------------------------------------------------------------------
@@ -3392,15 +3471,13 @@ namespace Legion {
       // here before we handle the message, and then we pretend like the
       // actuall finish event is a user event triggered after we get the
       // profiling response for this task.
-      LgEvent fevent;
-      Runtime::rename_event(fevent);
+      const LgEvent original_fevent = implicit_fevent;
+      Runtime::rename_event(implicit_fevent);
       // Well this is fun, we might even block on this lock acquire so
       // make sure we've set up our implicit fevent correctly
-      const LgEvent original_fevent = implicit_fevent;
-      implicit_fevent = fevent;
-      // Save the current implicit fevent so we can look it up later
       AutoLock prof_lock(profiler_lock);
-      message_fevents[fevent] = original_fevent;
+      // Save the current implicit fevent so we can look it up later
+      message_fevents[implicit_fevent] = original_fevent;
 #ifdef LEGION_DEBUG
       total_outstanding_requests[LEGION_PROF_MESSAGE]++;
 #else
@@ -3470,22 +3547,25 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfiler::measure_effect_trigger(
-        ApEvent effect, const char* prov)
+    void LegionProfiler::measure_event_trigger(
+        LgEvent event, EffectKind kind, LgEvent fevent, size_t extra_data,
+        const char* prov)
     //--------------------------------------------------------------------------
     {
       increment_total_outstanding_requests(LEGION_PROF_TRIGGER);
       ProfilingInfo info(this, LEGION_PROF_TRIGGER, implicit_provenance);
       if (prov != nullptr)
       {
-        Provenance* provenance =
+        legion_assert(extra_data == 0);
+        Legion::Internal::Provenance* provenance =
             runtime->find_or_create_provenance(prov, strlen(prov));
         info.id = provenance->pid;
       }
       else
-        info.id = 0;
-      info.creator = implicit_fevent;
-      info.critical = effect;
+        info.id = extra_data;
+      info.extra.id2 = kind;
+      info.creator = fevent;
+      info.critical = event;
       Realm::ProfilingRequestSet requests;
       Realm::ProfilingRequest& request = requests.add_request(
           target_proc, LG_LEGION_PROFILING_ID, &info, sizeof(info),
@@ -3493,44 +3573,206 @@ namespace Legion {
       request
           .add_measurement<Realm::ProfilingMeasurements::OperationTimeline>();
       // Spawn a no-op task with a profiling response to measure when
-      // the effect triggered
+      // the event triggered
       target_proc.spawn(
           Processor::TASK_ID_PROCESSOR_NOP, nullptr, 0, requests,
-          Runtime::protect_event(effect), LG_MIN_PRIORITY);
+          Realm::Event::ignorefaults(event), LG_MIN_PRIORITY);
     }
 
     //--------------------------------------------------------------------------
     void LegionProfiler::update_footprint(size_t diff, LegionProfInstance* inst)
     //--------------------------------------------------------------------------
     {
+      // This function must be lock-free because it can be called inside
+      // an event wait when we're already trying to wait on an event and
+      // therefore it is not safe to take a lock and try to wait again
+      inst->footprint += diff;
       size_t footprint = total_memory_footprint.fetch_add(diff) + diff;
       if (footprint > output_footprint_threshold)
       {
-        // An important bit of logic here, if we're over the threshold then
-        // we want to have a little bit of a feedback loop so the more over
-        // the limit we are then the more time we give the profiler to dump
-        // out things to the output file. We'll try to make this continuous
-        // so there are no discontinuities in performance. If the threshold
-        // is zero we'll just choose an arbitrarily large scale factor to
-        // ensure that things work properly.
-        double over_scale =
-            output_footprint_threshold == 0 ?
-                double(1 << 20) :
-                double(footprint) / double(output_footprint_threshold);
-        // Let's actually make this quadratic so it's not just linear
-        if (output_footprint_threshold > 0)
-          over_scale *= over_scale;
-        if (!serializer->is_thread_safe())
+        // Extract a new prof instance so we can dump out its current state
+        // and save the clone as the new implicit profiler
+        total_memory_footprint.fetch_sub(inst->footprint);
+        LegionProfInstance* dump = inst->dump();
+        // Enqueue this on the dump list and if it is the first one
+        // then launch a profiler dump task to start writing it out
+        LegionProfInstance* head = dump_list.load();
+        dump->next.store(head);
+        while (!dump_list.compare_exchange_weak(head, dump))
+          dump->next.store(head);
+        if (head == nullptr)
         {
-          // Need a lock to protect the serializer
+          const RtUserEvent dump_event = Runtime::create_rt_user_event();
+          ProfilerDumpArgs args(this, dump_event);
+          const RtEvent precondition = last_dump_task;
+          last_dump_task = dump_event;
+          runtime->issue_runtime_meta_task(args, LG_LOW_PRIORITY, precondition);
+        }
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void LegionProfiler::update_footprint(size_t diff)
+    //--------------------------------------------------------------------------
+    {
+      // We're already holding the lock when this is called so we can't take
+      // it again but it also doesn't protect us with races from the calls to
+      // update_footprint from the instances, so we need to be careful
+      size_t footprint = total_memory_footprint.fetch_add(diff) + diff;
+      LegionProfInstance* head = dump_list.load();
+      if ((footprint > output_footprint_threshold) && (head == nullptr) &&
+          dump_list.compare_exchange_strong(
+              head, reinterpret_cast<LegionProfInstance*>(DUMP_NOW)))
+      {
+        const RtUserEvent dump_event = Runtime::create_rt_user_event();
+        ProfilerDumpArgs args(this, dump_event);
+        const RtEvent precondition = last_dump_task;
+        last_dump_task = dump_event;
+        runtime->issue_runtime_meta_task(args, LG_LOW_PRIORITY, precondition);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void LegionProfiler::dump_instances(RtUserEvent dump_event)
+    //--------------------------------------------------------------------------
+    {
+      // Start the timing so we know how long we are taking
+      const long long t_start = Realm::Clock::current_time_in_microseconds();
+      // Scale our latency by how much we are over the space limit
+      const long long t_stop = t_start + output_target_latency;
+      LegionProfInstance* instance = nullptr;
+      do {
+        // Extract out the things we're going to dump
+        std::deque<ProcDesc> dump_processor_descriptions;
+        std::deque<MemDesc> dump_memory_descriptions;
+        std::deque<ProcMemDesc> dump_procmem_affinities;
+        std::deque<TaskKind> dump_task_kinds;
+        std::deque<TaskVariant> dump_task_variants;
+        std::deque<Backtrace> dump_backtraces;
+        std::deque<MapperName> dump_mapper_names;
+        std::deque<Provenance> dump_provenances;
+        {
+          // Need to hold the lock to swap these
           AutoLock p_lock(profiler_lock);
-          diff = inst->dump_inter(serializer, over_scale);
+          drain_pending_backtraces(false /*update footprint*/);
+          dump_processor_descriptions.swap(processor_descriptions);
+          dump_memory_descriptions.swap(memory_descriptions);
+          dump_procmem_affinities.swap(procmem_affinities);
+          dump_task_kinds.swap(task_kinds);
+          dump_task_variants.swap(task_variants);
+          dump_backtraces.swap(backtraces);
+          dump_mapper_names.swap(mapper_names);
+          dump_provenances.swap(provenances);
+          // Lock doesn't protect us from popping the first thing off
+          // the list so have to use a lock-free algorithm here
+          instance = dump_list.load();
+          if (instance != nullptr)
+          {
+            while (reinterpret_cast<uintptr_t>(instance) == DUMP_NOW)
+            {
+              if (dump_list.compare_exchange_weak(instance, nullptr))
+                break;
+            }
+            while (reinterpret_cast<uintptr_t>(instance) != DUMP_NOW)
+            {
+              LegionProfInstance* next = instance->next.load();
+              if (dump_list.compare_exchange_weak(
+                      instance,
+                      next == reinterpret_cast<LegionProfInstance*>(DUMP_NOW) ?
+                          nullptr :
+                          next))
+                break;
+            }
+          }
+        }
+        size_t diff = 0;
+        // Very important that we always write out all the deques before
+        // dumping any profiling instances since the profiler assumes
+        // that some of these things are ordered in the log file. It
+        // doesn't matter what order we dump out the profiling instances
+        // themselves though which is why we can get away with LIFO
+        for (const ProcDesc& proc : dump_processor_descriptions)
+          serializer->serialize(proc);
+        diff += dump_processor_descriptions.size() * sizeof(ProcDesc);
+        for (const MemDesc& mem : dump_memory_descriptions)
+          serializer->serialize(mem);
+        diff += dump_memory_descriptions.size() * sizeof(MemDesc);
+        for (const ProcMemDesc& desc : dump_procmem_affinities)
+          serializer->serialize(desc);
+        diff += dump_procmem_affinities.size() * sizeof(ProcMemDesc);
+        for (const TaskKind& kind : dump_task_kinds)
+        {
+          serializer->serialize(kind);
+          diff += kind.name.size();
+        }
+        diff += dump_task_kinds.size() * sizeof(TaskKind);
+        for (const TaskVariant& variant : dump_task_variants)
+        {
+          serializer->serialize(variant);
+          diff += variant.name.size();
+        }
+        diff += dump_task_variants.size() * sizeof(TaskVariant);
+        for (const Backtrace& bt : dump_backtraces)
+        {
+          serializer->serialize(bt);
+          diff += bt.backtrace.size();
+        }
+        diff += dump_backtraces.size() * sizeof(Backtrace);
+        for (const MapperName& mapper : dump_mapper_names)
+        {
+          serializer->serialize(mapper);
+          diff += mapper.name.size();
+        }
+        diff += dump_mapper_names.size() * sizeof(MapperName);
+        for (const Provenance& prov : dump_provenances)
+        {
+          serializer->serialize(prov);
+          diff += prov.provenance.size();
+        }
+        diff += dump_provenances.size() * sizeof(Provenance);
+        total_memory_footprint.fetch_sub(diff);
+        // If we don't have an instance to handle we're done
+        if ((instance == nullptr) ||
+            (reinterpret_cast<uintptr_t>(instance) == DUMP_NOW) ||
+            !instance->dump_inter(serializer, t_stop))
+          break;
+        // Done with this instance, go around again
+        delete instance;
+      } while (true);
+      if ((instance != nullptr) &&
+          (reinterpret_cast<uintptr_t>(instance) != DUMP_NOW))
+      {
+        // We still have a partial instance, if the partial
+        // instance has a next then that means there was always
+        // a guard in place and we need to launch a continuation
+        const bool launch_continuation =
+            (instance->next.load() != nullptr) &&
+            (reinterpret_cast<uintptr_t>(instance->next.load()) != DUMP_NOW);
+        // Add the instance back into the list
+        LegionProfInstance* head = dump_list.load();
+        instance->next.store(head);
+        while (!dump_list.compare_exchange_weak(head, instance))
+          instance->next.store(head);
+        if (launch_continuation || (head == nullptr))
+        {
+          ProfilerDumpArgs args(this, dump_event);
+          // Don't use a precondition or you'll make us depend on our
+          // own dump_event!
+          legion_assert(last_dump_task == dump_event);
+          runtime->issue_runtime_meta_task(args, LG_LOW_PRIORITY);
         }
         else
-          diff = inst->dump_inter(serializer, over_scale);
-        footprint = total_memory_footprint.fetch_sub(diff);
-        legion_assert(footprint >= diff);  // check for wrap-around
+          Runtime::trigger_event(dump_event);
       }
+      else
+        Runtime::trigger_event(dump_event);
+    }
+
+    //--------------------------------------------------------------------------
+    void LegionProfiler::ProfilerDumpArgs::execute(void) const
+    //--------------------------------------------------------------------------
+    {
+      profiler->dump_instances(dump_event);
     }
 
     //--------------------------------------------------------------------------
@@ -3601,11 +3843,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    LegionProfInstance* LegionProfiler::find_or_create_profiling_instance(void)
+    void LegionProfiler::instantiate_profiling_instance(void)
     //--------------------------------------------------------------------------
     {
       if (implicit_profiler != nullptr)
-        return implicit_profiler;
+        return;
+      // This function needs to be lock free to avoid taking a lock and
+      // possibly waiting on an event before we've had a chance to even
+      // create an LegionProfInstance to record the data associated with it.
       Processor current = Processor::get_executing_processor();
       LgEvent external;
       if (!current.exists())
@@ -3615,40 +3860,43 @@ namespace Legion {
         external = LgEvent(ext);
         // Also get the implicit processor to make sure it exists
         // and register the external top-level task
+        // Note this call to get_implicit_processor could possibly take
+        // a lock and end up waiting on an event, but we don't really care
+        // that much because we're on an external thread
         current.id = get_implicit_processor();
       }
+      // We can share these profiler instances on anything other than I/O
+      // processors which can have multiple threads running at the same time
       else if (current.kind() != Processor::IO_PROC)
       {
-        // If the processor already exists then we can use an existing instance
-        // on anything except I/O processors which can have multiple threads
-        // running at the same time
-        AutoLock p_lock(profiler_lock, false /*exclusive*/);
-        std::map<Processor, LegionProfInstance*>::const_iterator finder =
-            processor_instances.find(current);
-        if (finder != processor_instances.end())
-          return finder->second;
+        // Scan the list as it exists right now checking to see if the
+        // processor already has a profiling instance. While this list
+        // could be stale immediately we know its fine because any processor
+        // adding to the list must be different than ours so either our
+        // processor is already in the list or not. In this sense races
+        // are completely benign.
+        LegionProfInstance* instance = instances.load();
+        while (instance != nullptr)
+        {
+          if (instance->local_proc == current)
+          {
+            implicit_profiler = instance;
+            return;
+          }
+          instance = instance->next.load();
+        }
       }
+      // Make our instance
+      implicit_profiler = new LegionProfInstance(this, current, external);
+      // Only do this after we've set up our thread-local profiler as
+      // it might take a lock and end up waiting on an event
       if (!external.exists())
         record_processor(current);
-      LegionProfInstance* instance =
-          new LegionProfInstance(this, current, external);
-      // Take the lock and save the instance
-      AutoLock p_lock(profiler_lock);
-      if (!instance->is_external_thread() &&
-          (current.kind() != Processor::IO_PROC))
-      {
-        std::map<Processor, LegionProfInstance*>::const_iterator finder =
-            processor_instances.find(current);
-        if (finder != processor_instances.end())
-        {
-          delete instance;
-          return finder->second;
-        }
-        else
-          processor_instances[current] = instance;
-      }
-      instances.emplace_back(instance);
-      return instance;
+      // Add it to the list lock free
+      LegionProfInstance* head = instances.load();
+      implicit_profiler->next.store(head);
+      while (!instances.compare_exchange_weak(head, implicit_profiler))
+        implicit_profiler->next.store(head);
     }
 
   }  // namespace Internal

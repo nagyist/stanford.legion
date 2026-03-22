@@ -41,19 +41,18 @@ namespace Legion {
       LegionProfSerializer() { };
       virtual ~LegionProfSerializer() { };
 
-      virtual bool is_thread_safe(void) const = 0;
       // You must override the following functions in your implementation
-      virtual void serialize(const LegionProfDesc::MapperName&) = 0;
-      virtual void serialize(const LegionProfDesc::MapperCallDesc&) = 0;
-      virtual void serialize(const LegionProfDesc::RuntimeCallDesc&) = 0;
-      virtual void serialize(const LegionProfDesc::MetaDesc&) = 0;
-      virtual void serialize(const LegionProfDesc::OpDesc&) = 0;
-      virtual void serialize(const LegionProfDesc::MaxDimDesc&) = 0;
-      virtual void serialize(const LegionProfDesc::RuntimeConfig&) = 0;
-      virtual void serialize(const LegionProfDesc::MachineDesc&) = 0;
-      virtual void serialize(const LegionProfDesc::ZeroTime&) = 0;
-      virtual void serialize(const LegionProfDesc::CalibrationErr&) = 0;
-      virtual void serialize(const LegionProfDesc::Provenance&) = 0;
+      virtual void serialize(const LegionProfiler::MapperName&) = 0;
+      virtual void serialize(const LegionProfiler::MapperCallDesc&) = 0;
+      virtual void serialize(const LegionProfiler::RuntimeCallDesc&) = 0;
+      virtual void serialize(const LegionProfiler::MetaDesc&) = 0;
+      virtual void serialize(const LegionProfiler::OpDesc&) = 0;
+      virtual void serialize(const LegionProfiler::MaxDimDesc&) = 0;
+      virtual void serialize(const LegionProfiler::RuntimeConfig&) = 0;
+      virtual void serialize(const LegionProfiler::MachineDesc&) = 0;
+      virtual void serialize(const LegionProfiler::ZeroTime&) = 0;
+      virtual void serialize(const LegionProfiler::CalibrationErr&) = 0;
+      virtual void serialize(const LegionProfiler::Provenance&) = 0;
       virtual void serialize(
           const LegionProfInstance::IndexSpacePointDesc&) = 0;
       virtual void serialize(const LegionProfInstance::IndexSpaceRectDesc&) = 0;
@@ -77,8 +76,8 @@ namespace Legion {
       virtual void serialize(
           const LegionProfInstance::PhysicalInstanceUsage&) = 0;
       virtual void serialize(const LegionProfInstance::IndexSpaceSizeDesc&) = 0;
-      virtual void serialize(const LegionProfDesc::TaskKind&) = 0;
-      virtual void serialize(const LegionProfDesc::TaskVariant&) = 0;
+      virtual void serialize(const LegionProfiler::TaskKind&) = 0;
+      virtual void serialize(const LegionProfiler::TaskVariant&) = 0;
       virtual void serialize(const LegionProfInstance::OperationInstance&) = 0;
       virtual void serialize(const LegionProfInstance::MultiTask&) = 0;
       virtual void serialize(const LegionProfInstance::SliceOwner&) = 0;
@@ -113,10 +112,10 @@ namespace Legion {
       virtual void serialize(
           const LegionProfInstance::PartInstInfo&,
           const LegionProfInstance::PartitionInfo&) = 0;
-      virtual void serialize(const LegionProfDesc::ProcDesc&) = 0;
-      virtual void serialize(const LegionProfDesc::MemDesc&) = 0;
-      virtual void serialize(const LegionProfDesc::ProcMemDesc&) = 0;
-      virtual void serialize(const LegionProfDesc::Backtrace&) = 0;
+      virtual void serialize(const LegionProfiler::ProcDesc&) = 0;
+      virtual void serialize(const LegionProfiler::MemDesc&) = 0;
+      virtual void serialize(const LegionProfiler::ProcMemDesc&) = 0;
+      virtual void serialize(const LegionProfiler::Backtrace&) = 0;
       virtual void serialize(const LegionProfInstance::EventWaitInfo&) = 0;
       virtual void serialize(const LegionProfInstance::EventMergerInfo&) = 0;
       virtual void serialize(const LegionProfInstance::EventTriggerInfo&) = 0;
@@ -129,6 +128,8 @@ namespace Legion {
           const LegionProfInstance::InstanceRedistrictInfo&) = 0;
       virtual void serialize(
           const LegionProfInstance::CompletionQueueInfo&) = 0;
+      virtual void serialize(const LegionProfInstance::MakeValidInfo&) = 0;
+      virtual void serialize(const LegionProfInstance::FetchMetadataInfo&) = 0;
       virtual void serialize(const LegionProfInstance::ProfTaskInfo&) = 0;
     };
 
@@ -140,19 +141,18 @@ namespace Legion {
 
       void writePreamble();
 
-      bool is_thread_safe(void) const override { return false; }
       // Serialize Methods
-      void serialize(const LegionProfDesc::MapperName&) override;
-      void serialize(const LegionProfDesc::MapperCallDesc&) override;
-      void serialize(const LegionProfDesc::RuntimeCallDesc&) override;
-      void serialize(const LegionProfDesc::MetaDesc&) override;
-      void serialize(const LegionProfDesc::OpDesc&) override;
-      void serialize(const LegionProfDesc::MaxDimDesc&) override;
-      void serialize(const LegionProfDesc::RuntimeConfig&) override;
-      void serialize(const LegionProfDesc::MachineDesc&) override;
-      void serialize(const LegionProfDesc::ZeroTime&) override;
-      void serialize(const LegionProfDesc::CalibrationErr&) override;
-      void serialize(const LegionProfDesc::Provenance&) override;
+      void serialize(const LegionProfiler::MapperName&) override;
+      void serialize(const LegionProfiler::MapperCallDesc&) override;
+      void serialize(const LegionProfiler::RuntimeCallDesc&) override;
+      void serialize(const LegionProfiler::MetaDesc&) override;
+      void serialize(const LegionProfiler::OpDesc&) override;
+      void serialize(const LegionProfiler::MaxDimDesc&) override;
+      void serialize(const LegionProfiler::RuntimeConfig&) override;
+      void serialize(const LegionProfiler::MachineDesc&) override;
+      void serialize(const LegionProfiler::ZeroTime&) override;
+      void serialize(const LegionProfiler::CalibrationErr&) override;
+      void serialize(const LegionProfiler::Provenance&) override;
       void serialize(const LegionProfInstance::IndexSpacePointDesc&) override;
       void serialize(const LegionProfInstance::IndexSpaceRectDesc&) override;
       void serialize(const LegionProfInstance::IndexSpaceEmptyDesc&) override;
@@ -173,8 +173,8 @@ namespace Legion {
           const LegionProfInstance::PhysicalInstanceSpaces&) override;
       void serialize(const LegionProfInstance::PhysicalInstanceUsage&) override;
       void serialize(const LegionProfInstance::IndexSpaceSizeDesc&) override;
-      void serialize(const LegionProfDesc::TaskKind&) override;
-      void serialize(const LegionProfDesc::TaskVariant&) override;
+      void serialize(const LegionProfiler::TaskKind&) override;
+      void serialize(const LegionProfiler::TaskVariant&) override;
       void serialize(const LegionProfInstance::OperationInstance&) override;
       void serialize(const LegionProfInstance::MultiTask&) override;
       void serialize(const LegionProfInstance::SliceOwner&) override;
@@ -208,10 +208,10 @@ namespace Legion {
       void serialize(
           const LegionProfInstance::PartInstInfo&,
           const LegionProfInstance::PartitionInfo&) override;
-      void serialize(const LegionProfDesc::ProcDesc&) override;
-      void serialize(const LegionProfDesc::MemDesc&) override;
-      void serialize(const LegionProfDesc::ProcMemDesc&) override;
-      void serialize(const LegionProfDesc::Backtrace&) override;
+      void serialize(const LegionProfiler::ProcDesc&) override;
+      void serialize(const LegionProfiler::MemDesc&) override;
+      void serialize(const LegionProfiler::ProcMemDesc&) override;
+      void serialize(const LegionProfiler::Backtrace&) override;
       void serialize(const LegionProfInstance::EventWaitInfo&) override;
       void serialize(const LegionProfInstance::EventMergerInfo&) override;
       void serialize(const LegionProfInstance::EventTriggerInfo&) override;
@@ -223,6 +223,8 @@ namespace Legion {
       void serialize(
           const LegionProfInstance::InstanceRedistrictInfo&) override;
       void serialize(const LegionProfInstance::CompletionQueueInfo&) override;
+      void serialize(const LegionProfInstance::MakeValidInfo&) override;
+      void serialize(const LegionProfInstance::FetchMetadataInfo&) override;
       void serialize(const LegionProfInstance::ProfTaskInfo&) override;
     private:
 #ifdef LEGION_USE_ZLIB
@@ -297,6 +299,8 @@ namespace Legion {
         ZERO_TIME_ID,
         CALIBRATION_ERR_ID,
         PROVENANCE_ID,
+        MAKE_VALID_INFO_ID,
+        FETCH_METADATA_INFO_ID,
       };
     };
 
@@ -306,19 +310,18 @@ namespace Legion {
       LegionProfASCIISerializer();
       ~LegionProfASCIISerializer();
 
-      bool is_thread_safe(void) const override { return true; }
       // Serialize Methods
-      void serialize(const LegionProfDesc::MapperName&) override;
-      void serialize(const LegionProfDesc::MapperCallDesc&) override;
-      void serialize(const LegionProfDesc::RuntimeCallDesc&) override;
-      void serialize(const LegionProfDesc::MetaDesc&) override;
-      void serialize(const LegionProfDesc::OpDesc&) override;
-      void serialize(const LegionProfDesc::MaxDimDesc&) override;
-      void serialize(const LegionProfDesc::RuntimeConfig&) override;
-      void serialize(const LegionProfDesc::MachineDesc&) override;
-      void serialize(const LegionProfDesc::ZeroTime&) override;
-      void serialize(const LegionProfDesc::CalibrationErr&) override;
-      void serialize(const LegionProfDesc::Provenance&) override;
+      void serialize(const LegionProfiler::MapperName&) override;
+      void serialize(const LegionProfiler::MapperCallDesc&) override;
+      void serialize(const LegionProfiler::RuntimeCallDesc&) override;
+      void serialize(const LegionProfiler::MetaDesc&) override;
+      void serialize(const LegionProfiler::OpDesc&) override;
+      void serialize(const LegionProfiler::MaxDimDesc&) override;
+      void serialize(const LegionProfiler::RuntimeConfig&) override;
+      void serialize(const LegionProfiler::MachineDesc&) override;
+      void serialize(const LegionProfiler::ZeroTime&) override;
+      void serialize(const LegionProfiler::CalibrationErr&) override;
+      void serialize(const LegionProfiler::Provenance&) override;
       void serialize(const LegionProfInstance::IndexSpacePointDesc&) override;
       void serialize(const LegionProfInstance::IndexSpaceRectDesc&) override;
       void serialize(const LegionProfInstance::IndexSpaceEmptyDesc&) override;
@@ -339,8 +342,8 @@ namespace Legion {
           const LegionProfInstance::PhysicalInstanceSpaces&) override;
       void serialize(const LegionProfInstance::PhysicalInstanceUsage&) override;
       void serialize(const LegionProfInstance::IndexSpaceSizeDesc&) override;
-      void serialize(const LegionProfDesc::TaskKind&) override;
-      void serialize(const LegionProfDesc::TaskVariant&) override;
+      void serialize(const LegionProfiler::TaskKind&) override;
+      void serialize(const LegionProfiler::TaskVariant&) override;
       void serialize(const LegionProfInstance::OperationInstance&) override;
       void serialize(const LegionProfInstance::MultiTask&) override;
       void serialize(const LegionProfInstance::SliceOwner&) override;
@@ -374,10 +377,10 @@ namespace Legion {
       void serialize(
           const LegionProfInstance::PartInstInfo&,
           const LegionProfInstance::PartitionInfo&) override;
-      void serialize(const LegionProfDesc::ProcDesc&) override;
-      void serialize(const LegionProfDesc::MemDesc&) override;
-      void serialize(const LegionProfDesc::ProcMemDesc&) override;
-      void serialize(const LegionProfDesc::Backtrace&) override;
+      void serialize(const LegionProfiler::ProcDesc&) override;
+      void serialize(const LegionProfiler::MemDesc&) override;
+      void serialize(const LegionProfiler::ProcMemDesc&) override;
+      void serialize(const LegionProfiler::Backtrace&) override;
       void serialize(const LegionProfInstance::EventWaitInfo&) override;
       void serialize(const LegionProfInstance::EventMergerInfo&) override;
       void serialize(const LegionProfInstance::EventTriggerInfo&) override;
@@ -389,6 +392,8 @@ namespace Legion {
       void serialize(
           const LegionProfInstance::InstanceRedistrictInfo&) override;
       void serialize(const LegionProfInstance::CompletionQueueInfo&) override;
+      void serialize(const LegionProfInstance::MakeValidInfo&) override;
+      void serialize(const LegionProfInstance::FetchMetadataInfo&) override;
       void serialize(const LegionProfInstance::ProfTaskInfo&) override;
     };
 

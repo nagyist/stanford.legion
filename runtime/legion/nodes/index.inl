@@ -530,6 +530,8 @@ namespace Legion {
       legion_assert(index_space_set.load());
       legion_assert(!index_space_tight.load());
       const RtEvent valid_event(realm_index_space.make_valid());
+      if (implicit_profiler != nullptr)
+        implicit_profiler->record_make_valid(valid_event, did);
       if (!valid_event.has_triggered() || index_space_valid.exists())
       {
         // If this index space isn't ready yet, then we have to defer this
@@ -1042,6 +1044,8 @@ namespace Legion {
         {
           // Load its sparsity map on this node so we can test it
           RtEvent ready(other.make_valid());
+          if (implicit_profiler != nullptr)
+            implicit_profiler->record_make_valid(ready);
           ready.wait();
         }
         if (space.overlaps(other))

@@ -1316,6 +1316,9 @@ namespace Legion {
       // Request that we make the valid index space valid
       this->tight_index_space_ready =
           RtEvent(this->realm_index_space.make_valid());
+      if (implicit_profiler != nullptr)
+        implicit_profiler->record_make_valid(
+            this->tight_index_space_ready, this->did);
       if (!this->tight_index_space.dense())
       {
         ApEvent added;
@@ -1917,6 +1920,8 @@ namespace Legion {
       // Then launch the tighten call for it too since we know we're
       // going to want this eventually
       const RtEvent valid_event(this->realm_index_space.make_valid());
+      if (implicit_profiler != nullptr)
+        implicit_profiler->record_make_valid(valid_event, this->did);
       // See if both the events needed for the tighten call are done
       if (this->realm_index_space_ready.exists() ||
           !valid_event.has_triggered())
@@ -2042,6 +2047,8 @@ namespace Legion {
       // Then launch the tighten call for it too since we know we're
       // going to want this eventually
       const RtEvent valid_event(this->realm_index_space.make_valid());
+      if (implicit_profiler != nullptr)
+        implicit_profiler->record_make_valid(valid_event, this->did);
       // See if both the events needed for the tighten call are done
       if (this->realm_index_space_ready.exists() ||
           !valid_event.has_triggered())
@@ -2178,6 +2185,8 @@ namespace Legion {
         // Then launch the tighten call for it too since we know we're
         // going to want this eventually
         const RtEvent valid_event(this->realm_index_space.make_valid());
+        if (implicit_profiler != nullptr)
+          implicit_profiler->record_make_valid(valid_event, this->did);
         // See if both the events needed for the tighten call are done
         if (this->realm_index_space_ready.exists() ||
             !valid_event.has_triggered())
@@ -2286,6 +2295,8 @@ namespace Legion {
           realm_rects[idx] = rects[idx];
         this->realm_index_space = Realm::IndexSpace<DIM, T>(realm_rects);
         const RtEvent valid_event(this->realm_index_space.make_valid());
+        if (implicit_profiler != nullptr)
+          implicit_profiler->record_make_valid(valid_event, this->did);
         if (!valid_event.has_triggered())
         {
           IndexSpaceExpression::TightenIndexSpaceArgs args(this, this);

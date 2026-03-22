@@ -192,7 +192,8 @@ namespace Legion {
     public:
       AddressSpaceID select_source_space(AddressSpaceID destination) const;
       void pack_fields(
-          Serializer& rez, const std::vector<CopySrcDstField>& fields) const;
+          Serializer& rez, const std::vector<CopySrcDstField>& fields,
+          LgEvent inst_uid) const;
       unsigned find_local_index(PhysicalManager* target) const;
       void register_collective_analysis(
           PhysicalManager* target, CollectiveAnalysis* analysis,
@@ -282,7 +283,7 @@ namespace Legion {
           std::atomic<size_t>* target, std::vector<DistributedID>* instances,
           size_t best, const std::vector<DistributedID>& results,
           bool bandwidth);
-      static void unpack_fields(
+      [[nodiscard]] static LgEvent unpack_fields(
           std::vector<CopySrcDstField>& fields, Deserializer& derez,
           std::set<RtEvent>& ready_events, CollectiveView* view,
           RtEvent view_ready);

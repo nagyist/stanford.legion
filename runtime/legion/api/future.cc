@@ -2833,6 +2833,7 @@ namespace Legion {
               rez.serialize(freeproc);
               rez.serialize(freefunc);
               rez.serialize(instance);
+              rez.serialize(unique_event);
             }
             rez.dispatch(target_space);
           }
@@ -3405,8 +3406,12 @@ namespace Legion {
       derez.deserialize(unique_event);
       RtEvent use_event;
       if (instance.exists())
+      {
         use_event = RtEvent(
             instance.fetch_metadata(Processor::get_executing_processor()));
+        if (implicit_profiler != nullptr)
+          implicit_profiler->record_fetch_metadata(use_event, unique_event);
+      }
       bool own_allocation, external_allocation;
       derez.deserialize<bool>(own_allocation);
       derez.deserialize<bool>(external_allocation);
@@ -3481,7 +3486,11 @@ namespace Legion {
         freefunc = FutureInstance::free_host_memory;
       PhysicalInstance instance;
       derez.deserialize(instance);
+      LgEvent unique_event;
+      derez.deserialize(unique_event);
       const RtEvent use_event(instance.fetch_metadata(freeproc));
+      if (implicit_profiler != nullptr)
+        implicit_profiler->record_fetch_metadata(use_event, unique_event);
       FutureInstance::FreeExternalArgs args(
           nullptr /*no resource*/, freefunc, instance);
       if (freeproc.exists())

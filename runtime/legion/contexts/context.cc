@@ -579,8 +579,7 @@ namespace Legion {
       else if (runtime->profiler != nullptr)
         implicit_fevent = owner_task->get_completion_event();
       if ((runtime->profiler != nullptr) && (implicit_profiler == nullptr))
-        implicit_profiler =
-            runtime->profiler->find_or_create_profiling_instance();
+        runtime->profiler->instantiate_profiling_instance();
       // Switch over the executing processor to the one
       // that has actually been assigned to run this task.
       executing_processor = proc;

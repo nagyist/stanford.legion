@@ -173,7 +173,7 @@ namespace Legion {
             verbose_logging(false), dump_free_ranges(false),
             num_profiling_nodes(0), serializer_type("binary"),
             prof_footprint_threshold(128 << 20), prof_target_latency(100),
-            prof_call_threshold(0), prof_self_profile(false),
+            prof_call_threshold(1), prof_self_profile(false),
             prof_no_critical_paths(false), prof_all_critical_arrivals(false)
         { }
       public:
