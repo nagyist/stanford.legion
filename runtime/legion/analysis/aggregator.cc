@@ -460,28 +460,13 @@ namespace Legion {
       // Always use the source index for selecting sources
       analysis->op->select_sources(
           src_index, dst_man, src_views, ranking, points);
-      // Check to make sure that the ranking has sound output
-      unsigned count = 0;
-      std::vector<bool> unique_indexes(src_views.size(), false);
-      for (std::vector<unsigned>::iterator it = ranking.begin();
-           it != ranking.end();
-           /*nothing*/)
-      {
-        if (((*it) < unique_indexes.size()) && !unique_indexes[*it])
-        {
-          unique_indexes[*it] = true;
-          count++;
-          it++;
-        }
-        else  // remove duplicates and out of bound entries
-          it = ranking.erase(it);
-      }
-      if (count < unique_indexes.size())
-      {
-        for (unsigned idx = 0; idx < unique_indexes.size(); idx++)
-          if (!unique_indexes[idx])
-            ranking.emplace_back(idx);
-      }
+      // We use to have checking code here to make sure that the
+      // ranking is sound, but we cleaned up the implementation
+      // of Operation::compute_ranking to ensure that it always
+      // produces correct output so we don't need to double check
+      // it. This does require that each call to select_sources
+      // calls Operation::compute_ranking before returning
+      legion_assert(ranking.size() == src_views.size());
       // Save the result for the future
       finder->second.emplace_back(SelectSourcesResult(
           std::vector<InstanceView*>(src_views) /*make a copy*/,
