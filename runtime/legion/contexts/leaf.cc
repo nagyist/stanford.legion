@@ -188,7 +188,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LeafContext::log_created_requirements(void)
+    void LeafContext::log_created_requirements(void) const
     //--------------------------------------------------------------------------
     {
       // Nothing to do
