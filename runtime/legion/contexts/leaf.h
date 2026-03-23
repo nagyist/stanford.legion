@@ -57,7 +57,7 @@ namespace Legion {
           std::set<RtEvent>& preconditions) override;
       virtual void pack_return_resources(
           Serializer& rez, uint64_t return_index) override;
-      virtual void log_created_requirements(void) override;
+      virtual void log_created_requirements(void) const override;
       virtual void report_leaks_and_duplicates(
           std::set<RtEvent>& preconditions) override;
     public:

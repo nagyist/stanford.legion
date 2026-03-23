@@ -320,9 +320,7 @@ namespace Legion {
           std::vector<DeletedPartition>& deleted_partitions,
           std::set<RtEvent>& preconditions) override;
     public:
-      LogicalRegion find_logical_region(unsigned index);
-      int find_parent_region_req(
-          const RegionRequirement& req, bool check_privilege = true);
+      LogicalRegion find_logical_region(unsigned index) const;
       unsigned find_parent_region_index(
           Operation* op, const RegionRequirement& req, unsigned index = 0,
           bool skip_privileges = false, bool force_compute = false);
@@ -330,7 +328,7 @@ namespace Legion {
       unsigned add_created_region(
           LogicalRegion handle, bool task_local, bool output_region = false);
       // for logging created region requirements
-      virtual void log_created_requirements(void) override;
+      virtual void log_created_requirements(void) const override;
       virtual void report_leaks_and_duplicates(
           std::set<RtEvent>& preconditions) override;
     public:
@@ -454,7 +452,7 @@ namespace Legion {
           unsigned req_index, LocalLock*& tree_lock);
       void finalize_output_eqkd_tree(unsigned req_index);
       // This method must be called while holding the privilege lock
-      IndexSpace find_root_index_space(unsigned req_index);
+      IndexSpace find_root_index_space(unsigned req_index) const;
       RtEvent report_equivalence_sets(
           unsigned req_index, const CollectiveMapping& target_mapping,
           const std::vector<EqSetTracker*>& targets,
@@ -1094,8 +1092,13 @@ namespace Legion {
       // set to indicate regions on which we have privileges for
       // all fields because this is a created region instead of
       // a created field.
-      std::map<unsigned, RegionRequirement> created_requirements;
-      std::map<unsigned, bool> returnable_privileges;
+      std::map<
+          LogicalRegion, std::pair<RegionRequirement, unsigned /*req index*/> >
+          created_requirements;
+      std::map<
+          unsigned /*req index*/,
+          std::pair<LogicalRegion, bool /*returnable*/> >
+          returnable_privileges;
       // Number of outstanding deletions using this created requirement
       // The last one to send the count to zero actually gets to delete
       // the requirement and the logical region

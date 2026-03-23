@@ -175,7 +175,7 @@ namespace Legion {
       {
         for (const std::map<
                  IndexTreeNode*,
-                 std::vector<AttachProjectionFunctor*> >::value_type& fit :
+                 std::vector<AttachProjectionFunctor*>>::value_type& fit :
              attach_functions)
         {
           for (AttachProjectionFunctor* const & it : fit.second)
@@ -214,13 +214,13 @@ namespace Legion {
           delete it.second;
       }
       // Remove any global references that we are holding on collective views
-      std::map<RegionTreeID, std::vector<CollectiveResult*> > to_release;
+      std::map<RegionTreeID, std::vector<CollectiveResult*>> to_release;
       {
         AutoLock c_lock(collective_lock);
         to_release.swap(collective_results);
       }
       for (const std::map<
-               RegionTreeID, std::vector<CollectiveResult*> >::value_type& rit :
+               RegionTreeID, std::vector<CollectiveResult*>>::value_type& rit :
            to_release)
       {
         for (CollectiveResult* const & it : rit.second)
@@ -250,10 +250,10 @@ namespace Legion {
     void InnerContext::receive_resources(
         uint64_t return_index, std::map<LogicalRegion, unsigned>& created_regs,
         std::vector<DeletedRegion>& deleted_regs,
-        std::set<std::pair<FieldSpace, FieldID> >& created_fids,
+        std::set<std::pair<FieldSpace, FieldID>>& created_fids,
         std::vector<DeletedField>& deleted_fids,
         std::map<FieldSpace, unsigned>& created_fs,
-        std::map<FieldSpace, std::set<LogicalRegion> >& latent_fs,
+        std::map<FieldSpace, std::set<LogicalRegion>>& latent_fs,
         std::vector<DeletedFieldSpace>& deleted_fs,
         std::map<IndexSpace, unsigned>& created_is,
         std::vector<DeletedIndexSpace>& deleted_is,
@@ -331,7 +331,7 @@ namespace Legion {
       {
         for (const std::map<LogicalRegion, unsigned>::value_type& it : regions)
         {
-          std::map<FieldSpace, std::set<LogicalRegion> >::iterator finder =
+          std::map<FieldSpace, std::set<LogicalRegion>>::iterator finder =
               latent_field_spaces.find(it.first.get_field_space());
           if (finder != latent_field_spaces.end())
             finder->second.insert(it.first);
@@ -399,9 +399,8 @@ namespace Legion {
               // Check to see if we have any latent field spaces to clean up
               if (!latent_field_spaces.empty())
               {
-                std::map<FieldSpace, std::set<LogicalRegion> >::iterator
-                    finder =
-                        latent_field_spaces.find(rit.region.get_field_space());
+                std::map<FieldSpace, std::set<LogicalRegion>>::iterator finder =
+                    latent_field_spaces.find(rit.region.get_field_space());
                 if (finder != latent_field_spaces.end())
                 {
                   std::set<LogicalRegion>::iterator latent_finder =
@@ -412,14 +411,14 @@ namespace Legion {
                   {
                     // Now that all the regions using this field space have
                     // been deleted we can clean up all the created_fields
-                    for (std::set<std::pair<FieldSpace, FieldID> >::iterator
-                             it = created_fields.begin();
+                    for (std::set<std::pair<FieldSpace, FieldID>>::iterator it =
+                             created_fields.begin();
                          it != created_fields.end();
                          /*nothing*/)
                     {
                       if (it->first == finder->first)
                       {
-                        std::set<std::pair<FieldSpace, FieldID> >::iterator
+                        std::set<std::pair<FieldSpace, FieldID>>::iterator
                             to_delete = it++;
                         created_fields.erase(to_delete);
                       }
@@ -457,7 +456,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void InnerContext::register_field_creations(
-        std::set<std::pair<FieldSpace, FieldID> >& fields)
+        std::set<std::pair<FieldSpace, FieldID>>& fields)
     //--------------------------------------------------------------------------
     {
       AutoLock priv_lock(privilege_lock);
@@ -479,14 +478,14 @@ namespace Legion {
         std::vector<DeletedField>& fields, std::set<RtEvent>& preconditions)
     //--------------------------------------------------------------------------
     {
-      std::map<std::pair<FieldSpace, Provenance*>, std::set<FieldID> >
+      std::map<std::pair<FieldSpace, Provenance*>, std::set<FieldID>>
           delete_now;
       {
         AutoLock priv_lock(privilege_lock);
         for (const DeletedField& fit : fields)
         {
           const std::pair<FieldSpace, FieldID> key(fit.space, fit.fid);
-          std::set<std::pair<FieldSpace, FieldID> >::const_iterator
+          std::set<std::pair<FieldSpace, FieldID>>::const_iterator
               field_finder = created_fields.find(key);
           if (field_finder == created_fields.end())
           {
@@ -518,7 +517,7 @@ namespace Legion {
       if (!delete_now.empty())
       {
         for (const std::pair<
-                 const std::pair<FieldSpace, Provenance*>, std::set<FieldID> >&
+                 const std::pair<FieldSpace, Provenance*>, std::set<FieldID>>&
                  it : delete_now)
         {
           DeletionOp* op = runtime->get_operation<DeletionOp>();
@@ -551,7 +550,7 @@ namespace Legion {
         // Remove any latent field spaces we have ownership for
         for (const std::map<FieldSpace, unsigned>::value_type& it : spaces)
         {
-          std::map<FieldSpace, std::set<LogicalRegion> >::iterator finder =
+          std::map<FieldSpace, std::set<LogicalRegion>>::iterator finder =
               latent_field_spaces.find(it.first);
           if (finder != latent_field_spaces.end())
             latent_field_spaces.erase(finder);
@@ -575,14 +574,14 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void InnerContext::register_latent_field_spaces(
-        std::map<FieldSpace, std::set<LogicalRegion> >& spaces)
+        std::map<FieldSpace, std::set<LogicalRegion>>& spaces)
     //--------------------------------------------------------------------------
     {
       AutoLock p_lock(privilege_lock);
       if (!created_field_spaces.empty())
       {
         // Remote any latent field spaces we already have ownership on
-        for (std::map<FieldSpace, std::set<LogicalRegion> >::iterator it =
+        for (std::map<FieldSpace, std::set<LogicalRegion>>::iterator it =
                  spaces.begin();
              it != spaces.end();
              /*nothing*/)
@@ -590,7 +589,7 @@ namespace Legion {
           if (created_field_spaces.find(it->first) !=
               created_field_spaces.end())
           {
-            std::map<FieldSpace, std::set<LogicalRegion> >::iterator to_delete =
+            std::map<FieldSpace, std::set<LogicalRegion>>::iterator to_delete =
                 it++;
             spaces.erase(to_delete);
           }
@@ -606,7 +605,7 @@ namespace Legion {
         for (const std::map<LogicalRegion, unsigned>::value_type& it :
              created_regions)
         {
-          std::map<FieldSpace, std::set<LogicalRegion> >::iterator finder =
+          std::map<FieldSpace, std::set<LogicalRegion>>::iterator finder =
               spaces.find(it.first.get_field_space());
           if (finder != spaces.end())
             finder->second.insert(it.first);
@@ -615,10 +614,10 @@ namespace Legion {
       // Now we can do the merge
       if (!latent_field_spaces.empty())
       {
-        for (const std::map<FieldSpace, std::set<LogicalRegion> >::value_type&
+        for (const std::map<FieldSpace, std::set<LogicalRegion>>::value_type&
                  it : spaces)
         {
-          std::map<FieldSpace, std::set<LogicalRegion> >::iterator finder =
+          std::map<FieldSpace, std::set<LogicalRegion>>::iterator finder =
               latent_field_spaces.find(it.first);
           if (finder != latent_field_spaces.end())
             finder->second.insert(it.second.begin(), it.second.end());
@@ -666,14 +665,14 @@ namespace Legion {
               if (remaining_regions.empty())
               {
                 // No remaining regions so we can remove any created fields now
-                for (std::set<std::pair<FieldSpace, FieldID> >::iterator it =
+                for (std::set<std::pair<FieldSpace, FieldID>>::iterator it =
                          created_fields.begin();
                      it != created_fields.end();
                      /*nothing*/)
                 {
                   if (it->first == fit.space)
                   {
-                    std::set<std::pair<FieldSpace, FieldID> >::iterator
+                    std::set<std::pair<FieldSpace, FieldID>>::iterator
                         to_delete = it++;
                     created_fields.erase(to_delete);
                   }
@@ -742,7 +741,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::vector<DeletedIndexSpace> delete_now;
-      std::vector<std::vector<IndexPartition> > sub_partitions;
+      std::vector<std::vector<IndexPartition>> sub_partitions;
       {
         AutoLock priv_lock(privilege_lock);
         for (const DeletedIndexSpace& sit : spaces)
@@ -842,7 +841,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::vector<DeletedPartition> delete_now;
-      std::vector<std::vector<IndexPartition> > sub_partitions;
+      std::vector<std::vector<IndexPartition>> sub_partitions;
       {
         AutoLock priv_lock(privilege_lock);
         for (const DeletedPartition& pit : parts)
@@ -978,8 +977,8 @@ namespace Legion {
       op::FieldMaskMap<EquivalenceSet> eq_sets;
       std::vector<RtEvent> pending_sets;
       op::map<EqKDTree*, Domain> creation_rects;
-      op::map<EquivalenceSet*, op::map<Domain, FieldMask> > creation_srcs;
-      op::map<ShardID, op::map<Domain, FieldMask> > remote_shard_rects;
+      op::map<EquivalenceSet*, op::map<Domain, FieldMask>> creation_srcs;
+      op::map<ShardID, op::map<Domain, FieldMask>> remote_shard_rects;
       std::vector<unsigned> new_target_references(targets.size(), 0);
       expr->compute_equivalence_sets(
           tree, tree_lock, mask, targets, target_spaces, new_target_references,
@@ -1005,7 +1004,7 @@ namespace Legion {
         op::FieldMaskMap<EqKDTree>& new_subscriptions,
         op::FieldMaskMap<EqKDTree>& to_create,
         op::map<EqKDTree*, Domain>& creation_rects,
-        op::map<EquivalenceSet*, op::map<Domain, FieldMask> >& creation_srcs,
+        op::map<EquivalenceSet*, op::map<Domain, FieldMask>>& creation_srcs,
         size_t expected_responses, std::vector<RtEvent>& ready_events)
     //--------------------------------------------------------------------------
     {
@@ -1087,7 +1086,7 @@ namespace Legion {
               rez.serialize(creation_rects[it->first]);
             }
             rez.serialize<size_t>(creation_srcs.size());
-            for (op::map<EquivalenceSet*, op::map<Domain, FieldMask> >::
+            for (op::map<EquivalenceSet*, op::map<Domain, FieldMask>>::
                      const_iterator sit = creation_srcs.begin();
                  sit != creation_srcs.end(); sit++)
             {
@@ -1208,8 +1207,8 @@ namespace Legion {
         to_create.insert(tree, tree_mask);
         derez.deserialize(creation_rects[tree]);
       }
-      local::map<DistributedID, local::map<Domain, FieldMask> > temporary_srcs;
-      op::map<EquivalenceSet*, op::map<Domain, FieldMask> > creation_srcs;
+      local::map<DistributedID, local::map<Domain, FieldMask>> temporary_srcs;
+      op::map<EquivalenceSet*, op::map<Domain, FieldMask>> creation_srcs;
       size_t num_sources;
       derez.deserialize(num_sources);
       std::vector<RtEvent> ready_events;
@@ -1323,7 +1322,7 @@ namespace Legion {
               rez.serialize(creation_rects[it->first]);
             }
             rez.serialize<size_t>(temporary_srcs.size());
-            for (local::map<DistributedID, local::map<Domain, FieldMask> >::
+            for (local::map<DistributedID, local::map<Domain, FieldMask>>::
                      const_iterator sit = temporary_srcs.begin();
                  sit != temporary_srcs.end(); sit++)
             {
@@ -1389,7 +1388,7 @@ namespace Legion {
       LocalLock* tree_lock = nullptr;
       EqKDTree* tree = find_or_create_output_set_kd_tree(req_index, tree_lock);
       local::FieldMaskMap<EqKDTree> new_subscriptions;
-      op::map<ShardID, op::map<Domain, FieldMask> > remote_shard_rects;
+      op::map<ShardID, op::map<Domain, FieldMask>> remote_shard_rects;
       unsigned references = set->set_expr->record_output_equivalence_set(
           tree, tree_lock, set, mask, source, source_space, new_subscriptions,
           remote_shard_rects);
@@ -1565,7 +1564,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    IndexSpace InnerContext::find_root_index_space(unsigned req_index)
+    IndexSpace InnerContext::find_root_index_space(unsigned req_index) const
     //--------------------------------------------------------------------------
     {
       // Already holding the privilege lock from the caller
@@ -1577,11 +1576,10 @@ namespace Legion {
       }
       else
       {
-        std::map<unsigned, RegionRequirement>::const_iterator finder =
-            created_requirements.find(req_index);
-        legion_assert(finder != created_requirements.end());
-        legion_assert(finder->second.handle_type == LEGION_SINGULAR_PROJECTION);
-        return finder->second.region.get_index_space();
+        std::map<unsigned, std::pair<LogicalRegion, bool>>::const_iterator
+            finder = returnable_privileges.find(req_index);
+        legion_assert(finder != returnable_privileges.end());
+        return finder->second.first.get_index_space();
       }
     }
 
@@ -1811,126 +1809,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    int InnerContext::find_parent_region_req(
-        const RegionRequirement& req, bool check_privilege /*= true*/)
-    //--------------------------------------------------------------------------
-    {
-      // We can check most of our region requirements without the lock
-      for (unsigned idx = 0; idx < regions.size(); idx++)
-      {
-        const RegionRequirement& our_req = regions[idx];
-        // First check that the regions match
-        if (our_req.region != req.parent)
-          continue;
-        // Next check the privileges
-        if (check_privilege &&
-            ((PRIV_ONLY(req) & our_req.privilege) != PRIV_ONLY(req)))
-          continue;
-        // Finally check that all the fields are contained
-        bool dominated = true;
-        for (FieldID fid : req.privilege_fields)
-        {
-          if (our_req.privilege_fields.find(fid) ==
-              our_req.privilege_fields.end())
-          {
-            dominated = false;
-            break;
-          }
-        }
-        if (!dominated)
-          continue;
-        return int(idx);
-      }
-      const FieldSpace fs = req.parent.get_field_space();
-      // The created region requirements have to be checked while holding
-      // the lock since they are subject to mutation by the application
-      // We might also mutate it so we take the lock in exclusive mode
-      AutoLock priv_lock(privilege_lock);
-      for (std::pair<const unsigned, RegionRequirement>& it :
-           created_requirements)
-      {
-        RegionRequirement& our_req = it.second;
-        // First check that the regions match
-        if (our_req.region != req.parent)
-          continue;
-        // Next check the privileges
-        if (check_privilege &&
-            ((PRIV_ONLY(req) & our_req.privilege) != PRIV_ONLY(req)))
-          continue;
-        legion_assert(
-            returnable_privileges.find(it.first) !=
-            returnable_privileges.end());
-        // If this is a returnable privilege requiremnt that means
-        // that we made this region so we always have privileges
-        // on any fields for that region, just add them and be done
-        if (returnable_privileges[it.first])
-        {
-          our_req.privilege_fields.insert(
-              req.privilege_fields.begin(), req.privilege_fields.end());
-          return it.first;
-        }
-        // Finally check that all the fields are contained
-        bool dominated = true;
-        for (FieldID fid : req.privilege_fields)
-        {
-          if (our_req.privilege_fields.find(fid) ==
-              our_req.privilege_fields.end())
-          {
-            // Check to see if this is a field we made
-            // and haven't destroyed yet
-            std::pair<FieldSpace, FieldID> key(fs, fid);
-            if (created_fields.find(key) != created_fields.end())
-            {
-              // We made it so we can add it to the requirement
-              // and continue on our way
-              our_req.privilege_fields.insert(fid);
-              continue;
-            }
-            if (local_fields.find(key) != local_fields.end())
-            {
-              // We made it so we can add it to the requirement
-              // and continue on our way
-              our_req.privilege_fields.insert(fid);
-              continue;
-            }
-            // Otherwise we don't have privileges
-            dominated = false;
-            break;
-          }
-        }
-        if (!dominated)
-          continue;
-        // Include the offset by the number of base requirements
-        return it.first;
-      }
-      // Method of last resort, check to see if we made all the fields
-      // if we did, then we can make a new requirement for all the fields
-      for (const FieldID& it : req.privilege_fields)
-      {
-        std::pair<FieldSpace, FieldID> key(fs, it);
-        // Didn't make it so we don't have privileges anywhere
-        if ((created_fields.find(key) == created_fields.end()) &&
-            (local_fields.find(key) == local_fields.end()))
-          return -1;
-      }
-      // If we get here then we can make a new requirement
-      // which has non-returnable privileges
-      // Get the top level region for the region tree
-      RegionNode* top = runtime->get_tree(req.parent.get_tree_id());
-      const unsigned index = next_created_index++;
-      RegionRequirement& new_req = created_requirements[index];
-      new_req = RegionRequirement(
-          top->handle, LEGION_READ_WRITE, LEGION_EXCLUSIVE, top->handle);
-      TaskOp::log_requirement(get_unique_id(), index, new_req);
-      // Add our fields
-      new_req.privilege_fields.insert(
-          req.privilege_fields.begin(), req.privilege_fields.end());
-      // This is not a returnable privilege requirement
-      returnable_privileges[index] = false;
-      return index;
-    }
-
-    //--------------------------------------------------------------------------
     unsigned InnerContext::find_parent_region_index(
         Operation* op, const RegionRequirement& req, unsigned index,
         bool skip_privileges, bool force_compute)
@@ -1973,58 +1851,59 @@ namespace Legion {
       // Need the lock because deletions can be coming back asynchronously
       // and mutating the create requirements data structure
       AutoLock priv_lock(privilege_lock);
-      for (std::pair<const unsigned, RegionRequirement>& it :
-           created_requirements)
+      std::map<LogicalRegion, std::pair<RegionRequirement, unsigned>>::iterator
+          finder = created_requirements.find(req.parent);
+      if (finder != created_requirements.end())
       {
-        RegionRequirement& our_req = it.second;
+        RegionRequirement& our_req = finder->second.first;
         legion_assert(our_req.handle_type == LEGION_SINGULAR_PROJECTION);
-        if (our_req.region != req.parent)
-          continue;
         found_parent = true;
         // Check to see if the privileges cover
-        if (!skip_privileges && (PRIV_ONLY(req) & (~(our_req.privilege))))
-          continue;
-        std::map<unsigned, bool>::const_iterator finder =
-            returnable_privileges.find(it.first);
-        legion_assert(finder != returnable_privileges.end());
-        // If this is a returnable privilege requiremnt that means
-        // that we made this region so we always have privileges
-        // on any fields for that region, just add them and be done
-        if (finder->second)
+        if (skip_privileges || !((PRIV_ONLY(req) & (~(our_req.privilege)))))
         {
-          our_req.privilege_fields.insert(
-              req.privilege_fields.begin(), req.privilege_fields.end());
-          return it.first;
-        }
-        bool dominated = true;
-        for (FieldID fid : req.privilege_fields)
-        {
-          if (our_req.privilege_fields.find(fid) !=
-              our_req.privilege_fields.end())
-            continue;
-          // Check to see if this is a field we made
-          // and haven't destroyed yet
-          std::pair<FieldSpace, FieldID> key(fs, fid);
-          if (created_fields.find(key) != created_fields.end())
+          std::map<unsigned, std::pair<LogicalRegion, bool>>::const_iterator
+              returnable_finder =
+                  returnable_privileges.find(finder->second.second);
+          legion_assert(returnable_finder != returnable_privileges.end());
+          // If this is a returnable privilege requiremnt that means
+          // that we made this region so we always have privileges
+          // on any fields for that region, just add them and be done
+          if (returnable_finder->second.second)
           {
-            // We made it so we can add it to the requirement
-            // and continue on our way
-            our_req.privilege_fields.insert(fid);
-            continue;
+            our_req.privilege_fields.insert(
+                req.privilege_fields.begin(), req.privilege_fields.end());
+            return finder->second.second;
           }
-          if (local_fields.find(key) != local_fields.end())
+          bool dominated = true;
+          for (FieldID fid : req.privilege_fields)
           {
-            // We made it so we can add it to the requirement
-            // and continue on our way
-            our_req.privilege_fields.insert(fid);
-            continue;
+            if (our_req.privilege_fields.find(fid) !=
+                our_req.privilege_fields.end())
+              continue;
+            // Check to see if this is a field we made
+            // and haven't destroyed yet
+            std::pair<FieldSpace, FieldID> key(fs, fid);
+            if (created_fields.find(key) != created_fields.end())
+            {
+              // We made it so we can add it to the requirement
+              // and continue on our way
+              our_req.privilege_fields.insert(fid);
+              continue;
+            }
+            if (local_fields.find(key) != local_fields.end())
+            {
+              // We made it so we can add it to the requirement
+              // and continue on our way
+              our_req.privilege_fields.insert(fid);
+              continue;
+            }
+            // Otherwise we don't have privileges
+            dominated = false;
+            break;
           }
-          // Otherwise we don't have privileges
-          dominated = false;
-          break;
+          if (dominated)
+            return finder->second.second;
         }
-        if (dominated)
-          return it.first;
       }
       if (!found_parent)
       {
@@ -2085,29 +1964,35 @@ namespace Legion {
       // Get the top level region for the region tree
       RegionNode* top = runtime->get_tree(req.parent.tree_did);
       const unsigned result = next_created_index++;
-      RegionRequirement& new_req = created_requirements[result];
-      new_req = RegionRequirement(
-          top->handle, LEGION_READ_WRITE, LEGION_EXCLUSIVE, top->handle);
+      RegionRequirement& new_req =
+          created_requirements
+              .emplace(
+                  top->handle, std::make_pair(
+                                   RegionRequirement(
+                                       top->handle, LEGION_READ_WRITE,
+                                       LEGION_EXCLUSIVE, top->handle),
+                                   result))
+              .first->second.first;
       TaskOp::log_requirement(get_unique_id(), result, new_req);
       // Add our fields
       new_req.privilege_fields.insert(
           req.privilege_fields.begin(), req.privilege_fields.end());
       // This is not a returnable privilege requirement
-      returnable_privileges[result] = false;
+      returnable_privileges.emplace(result, std::make_pair(top->handle, false));
       return result;
     }
 
     //--------------------------------------------------------------------------
-    LogicalRegion InnerContext::find_logical_region(unsigned index)
+    LogicalRegion InnerContext::find_logical_region(unsigned index) const
     //--------------------------------------------------------------------------
     {
       if (index < regions.size())
         return regions[index].region;
       AutoLock priv_lock(privilege_lock, false /*exclusive*/);
-      std::map<unsigned, RegionRequirement>::const_iterator finder =
-          created_requirements.find(index);
-      legion_assert(finder != created_requirements.end());
-      return finder->second.region;
+      std::map<unsigned, std::pair<LogicalRegion, bool>>::const_iterator
+          finder = returnable_privileges.find(index);
+      legion_assert(finder != returnable_privileges.end());
+      return finder->second.first;
     }
 
     //--------------------------------------------------------------------------
@@ -2134,9 +2019,9 @@ namespace Legion {
         // context has to provide global guidance about which
         // node manages the meta-data.
         AutoLock priv_lock(privilege_lock, false /*exclusive*/);
-        std::map<unsigned, bool>::const_iterator finder =
-            returnable_privileges.find(index);
-        if ((finder != returnable_privileges.end()) && !finder->second)
+        std::map<unsigned, std::pair<LogicalRegion, bool>>::const_iterator
+            finder = returnable_privileges.find(index);
+        if ((finder != returnable_privileges.end()) && !finder->second.second)
           return this;
       }
       return find_top_context();
@@ -2186,7 +2071,7 @@ namespace Legion {
       // Finally pack the local field infos
       AutoLock local_lock(local_field_lock, false /*exclusive*/);
       rez.serialize<size_t>(local_field_infos.size());
-      for (const std::map<FieldSpace, std::vector<LocalFieldInfo> >::value_type&
+      for (const std::map<FieldSpace, std::vector<LocalFieldInfo>>::value_type&
                it : local_field_infos)
       {
         rez.serialize(it.first);
@@ -2267,7 +2152,7 @@ namespace Legion {
 #define DIMFUNC(DIM)                                                         \
   case DIM:                                                                  \
     {                                                                        \
-      std::vector<Realm::Point<DIM, coord_t> > realm_points(points.size());  \
+      std::vector<Realm::Point<DIM, coord_t>> realm_points(points.size());   \
       for (unsigned idx = 0; idx < points.size(); idx++)                     \
         realm_points[idx] = Point<DIM, coord_t>(points[idx]);                \
       const DomainT<DIM, coord_t> realm_is(                                  \
@@ -2295,7 +2180,7 @@ namespace Legion {
 #define DIMFUNC(DIM)                                                         \
   case DIM:                                                                  \
     {                                                                        \
-      std::vector<Realm::Rect<DIM, coord_t> > realm_rects(rects.size());     \
+      std::vector<Realm::Rect<DIM, coord_t>> realm_rects(rects.size());      \
       for (unsigned idx = 0; idx < rects.size(); idx++)                      \
         realm_rects[idx] = Rect<DIM, coord_t>(rects[idx]);                   \
       const DomainT<DIM, coord_t> realm_is(                                  \
@@ -3897,14 +3782,14 @@ namespace Legion {
           if (latent_regions.empty())
           {
             // No remaining regions so we can remove any created fields now
-            for (std::set<std::pair<FieldSpace, FieldID> >::iterator it =
+            for (std::set<std::pair<FieldSpace, FieldID>>::iterator it =
                      created_fields.begin();
                  it != created_fields.end();
                  /*nothing*/)
             {
               if (it->first == handle)
               {
-                std::set<std::pair<FieldSpace, FieldID> >::iterator to_delete =
+                std::set<std::pair<FieldSpace, FieldID>>::iterator to_delete =
                     it++;
                 created_fields.erase(to_delete);
               }
@@ -4355,7 +4240,7 @@ namespace Legion {
         AutoLock priv_lock(privilege_lock, false /*exclusive*/);
         const std::pair<FieldSpace, FieldID> key(space, fid);
         // This field will actually be removed in analyze_destroy_fields
-        std::set<std::pair<FieldSpace, FieldID> >::const_iterator finder =
+        std::set<std::pair<FieldSpace, FieldID>>::const_iterator finder =
             created_fields.find(key);
         if (finder == created_fields.end())
         {
@@ -4408,7 +4293,7 @@ namespace Legion {
         for (const FieldID& it : to_free)
         {
           const std::pair<FieldSpace, FieldID> key(space, it);
-          std::set<std::pair<FieldSpace, FieldID> >::const_iterator finder =
+          std::set<std::pair<FieldSpace, FieldID>>::const_iterator finder =
               created_fields.find(key);
           if (finder == created_fields.end())
           {
@@ -4633,8 +4518,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock lf_lock(local_field_lock, false /*exclusive*/);
-      std::map<FieldSpace, std::vector<LocalFieldInfo> >::const_iterator
-          finder = local_field_infos.find(handle);
+      std::map<FieldSpace, std::vector<LocalFieldInfo>>::const_iterator finder =
+          local_field_infos.find(handle);
       legion_assert(finder != local_field_infos.end());
       [[maybe_unused]] unsigned found = 0;
       for (const LocalFieldInfo& it : finder->second)
@@ -4655,8 +4540,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock lf_lock(local_field_lock, false /*exclusive*/);
-      std::map<FieldSpace, std::vector<LocalFieldInfo> >::const_iterator
-          finder = local_field_infos.find(handle);
+      std::map<FieldSpace, std::vector<LocalFieldInfo>>::const_iterator finder =
+          local_field_infos.find(handle);
       legion_assert(finder != local_field_infos.end());
       [[maybe_unused]] unsigned found = 0;
       for (const LocalFieldInfo& it : finder->second)
@@ -4681,15 +4566,10 @@ namespace Legion {
         // There's a race here with created region tree contexts coming back
         // and making these requirements for themselves so we check for
         // duplications here in that case
-        for (const std::pair<const unsigned, RegionRequirement>& req :
-             created_requirements)
-        {
-          if (req.second.parent == handle)
-            return req.first;
-          // shouldn't have anything from the same region tree here
-          legion_assert(
-              req.second.parent.get_tree_id() != handle.get_tree_id());
-        }
+        std::map<LogicalRegion, std::pair<RegionRequirement, unsigned>>::
+            const_iterator finder = created_requirements.find(handle);
+        if (finder != created_requirements.end())
+          return finder->second.second;
       }
       RegionRequirement new_req(
           handle, LEGION_READ_WRITE, LEGION_EXCLUSIVE, handle);
@@ -4699,24 +4579,27 @@ namespace Legion {
       // Put a region requirement with no fields in the list of
       // created requirements, we know we can add any fields for
       // this field space in the future since we own all privileges
-      created_requirements[next_created_index] = new_req;
+      created_requirements.emplace(
+          handle, std::make_pair(std::move(new_req), next_created_index));
       // Created regions always return privileges that they make
-      returnable_privileges[next_created_index] = !task_local;
+      returnable_privileges.emplace(
+          next_created_index, std::make_pair(handle, !task_local));
       return next_created_index++;
     }
 
     //--------------------------------------------------------------------------
-    void InnerContext::log_created_requirements(void)
+    void InnerContext::log_created_requirements(void) const
     //--------------------------------------------------------------------------
     {
-      for (const std::pair<const unsigned, RegionRequirement>& req :
-           created_requirements)
+      for (const std::pair<
+               const LogicalRegion, std::pair<RegionRequirement, unsigned>>&
+               req : created_requirements)
       {
         // We already logged the requirement when we made it
         // Skip it if there are no privilege fields
-        if (req.second.privilege_fields.empty())
+        if (req.second.first.privilege_fields.empty())
           continue;
-        owner_task->log_virtual_mapping(req.first, req.second);
+        owner_task->log_virtual_mapping(req.second.second, req.second.first);
       }
     }
 
@@ -4947,7 +4830,7 @@ namespace Legion {
           // this region might be holding the last reference to the field space
           if (!latent_field_spaces.empty())
           {
-            std::map<FieldSpace, std::set<LogicalRegion> >::iterator finder =
+            std::map<FieldSpace, std::set<LogicalRegion>>::iterator finder =
                 latent_field_spaces.find(rit.first.get_field_space());
             if (finder != latent_field_spaces.end())
             {
@@ -4959,14 +4842,14 @@ namespace Legion {
               {
                 // Now that all the regions using this field space have
                 // been deleted we can clean up all the created_fields
-                for (std::set<std::pair<FieldSpace, FieldID> >::iterator it =
+                for (std::set<std::pair<FieldSpace, FieldID>>::iterator it =
                          created_fields.begin();
                      it != created_fields.end();
                      /*nothing*/)
                 {
                   if (it->first == finder->first)
                   {
-                    std::set<std::pair<FieldSpace, FieldID> >::iterator
+                    std::set<std::pair<FieldSpace, FieldID>>::iterator
                         to_delete = it++;
                     created_fields.erase(to_delete);
                   }
@@ -5086,7 +4969,7 @@ namespace Legion {
         for (const FieldID& it : to_delete)
         {
           const std::pair<FieldSpace, FieldID> key(handle, it);
-          std::set<std::pair<FieldSpace, FieldID> >::iterator finder =
+          std::set<std::pair<FieldSpace, FieldID>>::iterator finder =
               created_fields.find(key);
           if (finder == created_fields.end())
           {
@@ -5104,38 +4987,39 @@ namespace Legion {
           }
         }
         // Now figure out which region requirements can be destroyed
-        for (std::pair<const unsigned, RegionRequirement>& it :
-             created_requirements)
+        for (std::pair<
+                 const LogicalRegion, std::pair<RegionRequirement, unsigned>>&
+                 it : created_requirements)
         {
-          if (it.second.region.get_field_space() != handle)
+          if (it.second.first.region.get_field_space() != handle)
             continue;
           std::set<FieldID> overlapping_fields;
           for (const FieldID& fit : to_delete)
           {
             std::set<FieldID>::iterator finder =
-                it.second.privilege_fields.find(fit);
-            if (finder != it.second.privilege_fields.end())
+                it.second.first.privilege_fields.find(fit);
+            if (finder != it.second.first.privilege_fields.end())
             {
               overlapping_fields.insert(fit);
               // Remove this from the created requirements fields
-              it.second.privilege_fields.erase(finder);
+              it.second.first.privilege_fields.erase(finder);
             }
           }
           if (overlapping_fields.empty())
             continue;
           delete_reqs.resize(delete_reqs.size() + 1);
           RegionRequirement& req = delete_reqs.back();
-          req.region = it.second.region;
-          req.parent = it.second.region;
+          req.region = it.second.first.region;
+          req.parent = it.second.first.region;
           req.privilege = LEGION_READ_WRITE;
           req.prop = LEGION_EXCLUSIVE;
           req.privilege_fields.swap(overlapping_fields);
           req.handle_type = LEGION_SINGULAR_PROJECTION;
-          parent_req_indexes.emplace_back(it.first);
+          parent_req_indexes.emplace_back(it.second.second);
           // We need some extra logging for legion spy
           LegionSpy::log_requirement_fields(
-              get_unique_id(), it.first, req.privilege_fields);
-          owner_task->log_virtual_mapping(it.first, req);
+              get_unique_id(), it.second.second, req.privilege_fields);
+          owner_task->log_virtual_mapping(it.second.second, req);
         }
       }
       if (!local_to_free.empty())
@@ -5157,33 +5041,35 @@ namespace Legion {
         std::vector<MappingInstance> instances(
             1, Mapping::PhysicalInstance::get_virtual_instance());
         AutoLock priv_lock(privilege_lock);
-        for (std::pair<const unsigned, RegionRequirement>& it :
-             created_requirements)
+        for (std::pair<
+                 const LogicalRegion, std::pair<RegionRequirement, unsigned>>&
+                 it : created_requirements)
         {
           // Has to match precisely
-          if (handle.get_tree_id() == it.second.region.get_tree_id())
+          if (handle.get_tree_id() == it.second.first.region.get_tree_id())
           {
             // Should be the same region
-            legion_assert(handle == it.second.region);
+            legion_assert(handle == it.second.first.region);
             legion_assert(
-                returnable_privileges.find(it.first) !=
+                returnable_privileges.find(it.second.second) !=
                 returnable_privileges.end());
             // Do extra logging for legion spy
-            owner_task->log_virtual_mapping(it.first, it.second);
+            owner_task->log_virtual_mapping(it.second.second, it.second.first);
             // Then do the result of the normal operations
             delete_reqs.resize(delete_reqs.size() + 1);
             RegionRequirement& req = delete_reqs.back();
-            req.region = it.second.region;
-            req.parent = it.second.region;
+            req.region = it.second.first.region;
+            req.parent = it.second.first.region;
             req.privilege = LEGION_READ_WRITE;
             req.prop = LEGION_EXCLUSIVE;
             // Swap the privilege fields so that nothing else tries
             // to delete those particular fields
-            req.privilege_fields.swap(it.second.privilege_fields);
+            req.privilege_fields.swap(it.second.first.privilege_fields);
             req.handle_type = LEGION_SINGULAR_PROJECTION;
-            req.flags = it.second.flags;
-            parent_req_indexes.emplace_back(it.first);
-            returnable.emplace_back(returnable_privileges[it.first]);
+            req.flags = it.second.first.flags;
+            parent_req_indexes.emplace_back(it.second.second);
+            returnable.emplace_back(
+                returnable_privileges[it.second.second].second);
           }
         }
         // Remove the region from the created set
@@ -5207,7 +5093,7 @@ namespace Legion {
         // Check to see if we have any latent field spaces to clean up
         if (!latent_field_spaces.empty())
         {
-          std::map<FieldSpace, std::set<LogicalRegion> >::iterator finder =
+          std::map<FieldSpace, std::set<LogicalRegion>>::iterator finder =
               latent_field_spaces.find(handle.get_field_space());
           if (finder != latent_field_spaces.end())
           {
@@ -5219,15 +5105,15 @@ namespace Legion {
             {
               // Now that all the regions using this field space have
               // been deleted we can clean up all the created_fields
-              for (std::set<std::pair<FieldSpace, FieldID> >::iterator fit =
+              for (std::set<std::pair<FieldSpace, FieldID>>::iterator fit =
                        created_fields.begin();
                    fit != created_fields.end();
                    /*nothing*/)
               {
                 if (fit->first == finder->first)
                 {
-                  std::set<std::pair<FieldSpace, FieldID> >::iterator
-                      to_delete = fit++;
+                  std::set<std::pair<FieldSpace, FieldID>>::iterator to_delete =
+                      fit++;
                   created_fields.erase(to_delete);
                 }
                 else
@@ -5241,29 +5127,31 @@ namespace Legion {
       else
       {
         AutoLock priv_lock(privilege_lock);
-        for (std::pair<const unsigned, RegionRequirement>& it :
-             created_requirements)
+        for (std::pair<
+                 const LogicalRegion, std::pair<RegionRequirement, unsigned>>&
+                 it : created_requirements)
         {
           // Has to match precisely
-          if (handle.get_tree_id() == it.second.region.get_tree_id())
+          if (handle.get_tree_id() == it.second.first.region.get_tree_id())
           {
             // Should be the same region
-            legion_assert(handle == it.second.region);
+            legion_assert(handle == it.second.first.region);
             legion_assert(
-                returnable_privileges.find(it.first) !=
+                returnable_privileges.find(it.second.second) !=
                 returnable_privileges.end());
             delete_reqs.resize(delete_reqs.size() + 1);
             RegionRequirement& req = delete_reqs.back();
-            req.region = it.second.region;
-            req.parent = it.second.region;
+            req.region = it.second.first.region;
+            req.parent = it.second.first.region;
             req.privilege = LEGION_READ_WRITE;
             req.prop = LEGION_EXCLUSIVE;
             // Swap the privilege fields so that nothing else tries
             // to delete those particular fields
-            req.privilege_fields.swap(it.second.privilege_fields);
+            req.privilege_fields.swap(it.second.first.privilege_fields);
             req.handle_type = LEGION_SINGULAR_PROJECTION;
-            parent_req_indexes.emplace_back(it.first);
-            returnable.emplace_back(returnable_privileges[it.first]);
+            parent_req_indexes.emplace_back(it.second.second);
+            returnable.emplace_back(
+                returnable_privileges[it.second.second].second);
           }
         }
         // Remove the region from the created set
@@ -5287,7 +5175,7 @@ namespace Legion {
         // Check to see if we have any latent field spaces to clean up
         if (!latent_field_spaces.empty())
         {
-          std::map<FieldSpace, std::set<LogicalRegion> >::iterator finder =
+          std::map<FieldSpace, std::set<LogicalRegion>>::iterator finder =
               latent_field_spaces.find(handle.get_field_space());
           if (finder != latent_field_spaces.end())
           {
@@ -5299,15 +5187,15 @@ namespace Legion {
             {
               // Now that all the regions using this field space have
               // been deleted we can clean up all the created_fields
-              for (std::set<std::pair<FieldSpace, FieldID> >::iterator fit =
+              for (std::set<std::pair<FieldSpace, FieldID>>::iterator fit =
                        created_fields.begin();
                    fit != created_fields.end();
                    /*nothing*/)
               {
                 if (fit->first == finder->first)
                 {
-                  std::set<std::pair<FieldSpace, FieldID> >::iterator
-                      to_delete = fit++;
+                  std::set<std::pair<FieldSpace, FieldID>>::iterator to_delete =
+                      fit++;
                   created_fields.erase(to_delete);
                 }
                 else
@@ -6195,7 +6083,7 @@ namespace Legion {
       std::vector<RegionTreeNode*> next_nodes(indexes.size());
       while (max_depth > 0)
       {
-        std::map<RegionTreeNode*, std::vector<unsigned> > next_to_previous;
+        std::map<RegionTreeNode*, std::vector<unsigned>> next_to_previous;
         bool all_same = true;
         for (unsigned idx = 0; idx < indexes.size(); idx++)
         {
@@ -6215,9 +6103,8 @@ namespace Legion {
           }
         }
         // check to see if all the next to previous cases play by the rules
-        for (const std::map<
-                 RegionTreeNode*, std::vector<unsigned> >::value_type& it :
-             next_to_previous)
+        for (const std::map<RegionTreeNode*, std::vector<unsigned>>::value_type&
+                 it : next_to_previous)
         {
           if (it.second.size() == 1)
             continue;
@@ -6263,7 +6150,7 @@ namespace Legion {
         const bool can_use_identity)
     //--------------------------------------------------------------------------
     {
-      std::map<IndexTreeNode*, std::vector<AttachProjectionFunctor*> >::iterator
+      std::map<IndexTreeNode*, std::vector<AttachProjectionFunctor*>>::iterator
           finder = attach_functions.find(upper_bound);
       if (finder != attach_functions.end())
       {
@@ -6736,7 +6623,7 @@ namespace Legion {
     bool InnerContext::process_prepipeline_stage(void)
     //--------------------------------------------------------------------------
     {
-      std::vector<std::pair<Operation*, GenerationID> > to_perform;
+      std::vector<std::pair<Operation*, GenerationID>> to_perform;
       to_perform.reserve(context_configuration.meta_task_vector_width);
       {
         AutoLock p_lock(prepipeline_lock);
@@ -6824,7 +6711,7 @@ namespace Legion {
         reorder_buffer.emplace_back(ReorderBufferEntry(op, context_index));
         if (!pending_pointwise_dependences.empty())
         {
-          std::map<uint64_t, std::map<DomainPoint, RtUserEvent> >::iterator
+          std::map<uint64_t, std::map<DomainPoint, RtUserEvent>>::iterator
               finder = pending_pointwise_dependences.find(context_index);
           if (finder != pending_pointwise_dependences.end())
           {
@@ -6969,7 +6856,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<typename T, typename ARGS, bool HAS_BOUND>
     void InnerContext::add_to_queue(
-        QueueEntry<T> entry, LocalLock& lock, std::list<QueueEntry<T> >& queue,
+        QueueEntry<T> entry, LocalLock& lock, std::list<QueueEntry<T>>& queue,
         CompletionQueue& comp_queue)
     //--------------------------------------------------------------------------
     {
@@ -7034,10 +6921,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<typename T>
     T InnerContext::process_queue(
-        LocalLock& lock, RtEvent& precondition,
-        std::list<QueueEntry<T> >& queue, CompletionQueue& comp_queue,
-        std::vector<T>& to_perform, LgEvent previous_fevent,
-        long long& performed) const
+        LocalLock& lock, RtEvent& precondition, std::list<QueueEntry<T>>& queue,
+        CompletionQueue& comp_queue, std::vector<T>& to_perform,
+        LgEvent previous_fevent, long long& performed) const
     //--------------------------------------------------------------------------
     {
       T next{};
@@ -7055,7 +6941,7 @@ namespace Legion {
             precondition, previous_fevent, performed, &ready_events.front(),
             num_ready);
       // Find the entries
-      for (typename std::list<QueueEntry<T> >::iterator it = queue.begin();
+      for (typename std::list<QueueEntry<T>>::iterator it = queue.begin();
            it != queue.end();
            /*nothing*/)
       {
@@ -7551,7 +7437,7 @@ namespace Legion {
       add_to_queue<
           std::pair<Operation*, bool>, DeferredCommitArgs,
           false /*has bounds*/>(
-          QueueEntry<std::pair<Operation*, bool> >(
+          QueueEntry<std::pair<Operation*, bool>>(
               std::pair<Operation*, bool>(op, deactivate), ready),
           deferred_commit_lock, deferred_commit_queue,
           deferred_commit_comp_queue);
@@ -7562,9 +7448,9 @@ namespace Legion {
         RtEvent precondition, LgEvent previous_fevent, long long performed)
     //--------------------------------------------------------------------------
     {
-      std::vector<std::pair<Operation*, bool> > to_perform;
+      std::vector<std::pair<Operation*, bool>> to_perform;
       std::pair<Operation*, bool> next =
-          process_queue<std::pair<Operation*, bool> >(
+          process_queue<std::pair<Operation*, bool>>(
               deferred_commit_lock, precondition, deferred_commit_queue,
               deferred_commit_comp_queue, to_perform, previous_fevent,
               performed);
@@ -7627,7 +7513,7 @@ namespace Legion {
         previous_trace = nullptr;
       }
       std::map<Operation*, GenerationID> pending_generations;
-      std::map<Operation*, std::map<DomainPoint, RtUserEvent> >
+      std::map<Operation*, std::map<DomainPoint, RtUserEvent>>
           pending_pointwise;
       if (runtime->program_order_execution)
       {
@@ -7647,7 +7533,7 @@ namespace Legion {
             reorder_buffer.emplace_back(ReorderBufferEntry(op, context_index));
             if (!pending_pointwise_dependences.empty())
             {
-              std::map<uint64_t, std::map<DomainPoint, RtUserEvent> >::iterator
+              std::map<uint64_t, std::map<DomainPoint, RtUserEvent>>::iterator
                   finder = pending_pointwise_dependences.find(context_index);
               if (finder != pending_pointwise_dependences.end())
               {
@@ -7688,7 +7574,7 @@ namespace Legion {
           reorder_buffer.emplace_back(ReorderBufferEntry(op, context_index));
           if (!pending_pointwise_dependences.empty())
           {
-            std::map<uint64_t, std::map<DomainPoint, RtUserEvent> >::iterator
+            std::map<uint64_t, std::map<DomainPoint, RtUserEvent>>::iterator
                 finder = pending_pointwise_dependences.find(context_index);
             if (finder != pending_pointwise_dependences.end())
             {
@@ -7712,7 +7598,7 @@ namespace Legion {
       {
         d_lock.release();
         for (const std::pair<
-                 Operation* const, std::map<DomainPoint, RtUserEvent> >& pit :
+                 Operation* const, std::map<DomainPoint, RtUserEvent>>& pit :
              pending_pointwise)
         {
           std::map<Operation*, GenerationID>::const_iterator finder =
@@ -7748,7 +7634,7 @@ namespace Legion {
       reorder_buffer.emplace_back(ReorderBufferEntry(op, context_index));
       if (!pending_pointwise_dependences.empty())
       {
-        std::map<uint64_t, std::map<DomainPoint, RtUserEvent> >::iterator
+        std::map<uint64_t, std::map<DomainPoint, RtUserEvent>>::iterator
             finder = pending_pointwise_dependences.find(context_index);
         if (finder != pending_pointwise_dependences.end())
         {
@@ -8301,7 +8187,7 @@ namespace Legion {
             (op_kind == TRACE_COMPLETE_OP_KIND));
       }
 #endif
-      std::vector<std::pair<Operation*, GenerationID> > previous_operations;
+      std::vector<std::pair<Operation*, GenerationID>> previous_operations;
       // Take the lock and iterate through our current pending
       // operations and find all the ones with a context index
       // that is less than the index for the fence operation
@@ -9187,8 +9073,9 @@ namespace Legion {
             tree_context, regions[idx], false /*filter specific fields*/);
       }
       std::set<LogicalRegion> invalidated_regions;
-      for (const std::pair<const unsigned, RegionRequirement>& req :
-           created_requirements)
+      for (const std::pair<
+               const LogicalRegion, std::pair<RegionRequirement, unsigned>>&
+               req : created_requirements)
       {
         // Little tricky here, this is safe to invaliate the whole
         // tree even if we only had privileges on a field because
@@ -9196,8 +9083,8 @@ namespace Legion {
         // it would have merged the created_requirement and we wouldn't
         // have a non returnable privilege requirement in this context
         runtime->invalidate_region_tree_context(
-            tree_context, req.second, false /*filter specific fields*/);
-        invalidated_regions.insert(req.second.region);
+            tree_context, req.second.first, false /*filter specific fields*/);
+        invalidated_regions.insert(req.second.first.region);
       }
     }
 
@@ -9246,19 +9133,20 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::map<RegionNode*, EqKDTree*> return_regions;
-      for (const std::pair<const unsigned, RegionRequirement>& it :
-           created_requirements)
+      for (const std::pair<
+               const LogicalRegion, std::pair<RegionRequirement, unsigned>>&
+               it : created_requirements)
       {
-        RegionNode* node = runtime->get_node(it.second.region);
+        RegionNode* node = runtime->get_node(it.second.first.region);
         legion_assert(
-            returnable_privileges.find(it.first) !=
+            returnable_privileges.find(it.second.second) !=
             returnable_privileges.end());
         std::map<unsigned, EqKDRoot>::iterator finder =
-            equivalence_set_trees.find(it.first);
+            equivalence_set_trees.find(it.second.second);
         if (finder == equivalence_set_trees.end())
           continue;
         // See if we're a returnable privilege or not
-        if (returnable_privileges[it.first] && !is_top)
+        if (returnable_privileges[it.second.second].second && !is_top)
         {
           legion_assert(return_regions.find(node) == return_regions.end());
           finder->second.tree->add_reference();
@@ -9269,8 +9157,8 @@ namespace Legion {
         {
           // Not returning so just remove it which will delete the tree
           legion_assert(return_regions.find(node) == return_regions.end());
-          const FieldMask close_mask =
-              node->column_source->get_field_mask(it.second.privilege_fields);
+          const FieldMask close_mask = node->column_source->get_field_mask(
+              it.second.first.privilege_fields);
           std::vector<RtEvent> applied_events;
           node->row_source->invalidate_equivalence_set_kd_tree(
               finder->second.tree, finder->second.lock, close_mask,
@@ -9386,8 +9274,11 @@ namespace Legion {
         equivalence_set_trees.erase(req_index);
         // Also need to remove the returnable privileges information
         // and any created region requirements
-        returnable_privileges.erase(req_index);
-        created_requirements.erase(req_index);
+        std::map<unsigned, std::pair<LogicalRegion, bool>>::iterator finder =
+            returnable_privileges.find(req_index);
+        legion_assert(finder != returnable_privileges.end());
+        created_requirements.erase(finder->second.first);
+        returnable_privileges.erase(finder);
       }
     }
 
@@ -9614,7 +9505,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void InnerContext::convert_analysis_views(
         const InstanceSet& targets,
-        op::vector<op::FieldMaskMap<InstanceView> >& target_views)
+        op::vector<op::FieldMaskMap<InstanceView>>& target_views)
     //--------------------------------------------------------------------------
     {
       target_views.resize(targets.size());
@@ -9832,7 +9723,7 @@ namespace Legion {
       bool found = false;
       {
         AutoLock c_lock(collective_lock);
-        std::map<RegionTreeID, std::vector<CollectiveResult*> >::iterator
+        std::map<RegionTreeID, std::vector<CollectiveResult*>>::iterator
             finder = collective_results.find(tid);
         if (finder == collective_results.end())
           return;
@@ -10227,7 +10118,7 @@ namespace Legion {
     {
       {
         AutoLock i_lock(inline_lock);
-        std::map<PhysicalInstance, std::pair<LgEvent, bool> >::iterator finder =
+        std::map<PhysicalInstance, std::pair<LgEvent, bool>>::iterator finder =
             task_local_instances.find(instance);
         if (finder == task_local_instances.end())
         {
@@ -10312,7 +10203,7 @@ namespace Legion {
       }
       // See if we have any local regions or fields that need to be deallocated
       std::vector<LogicalRegion> local_regions_to_delete;
-      std::map<FieldSpace, std::set<FieldID> > local_fields_to_delete;
+      std::map<FieldSpace, std::set<FieldID>> local_fields_to_delete;
       {
         AutoLock priv_lock(privilege_lock, false /*exclusive*/);
         for (const std::pair<const LogicalRegion, bool>& it : local_regions)
@@ -10331,7 +10222,7 @@ namespace Legion {
       }
       if (!local_fields_to_delete.empty())
       {
-        for (const std::pair<const FieldSpace, std::set<FieldID> >& it :
+        for (const std::pair<const FieldSpace, std::set<FieldID>>& it :
              local_fields_to_delete)
         {
           FieldAllocatorImpl* allocator =
@@ -10702,8 +10593,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock local_lock(local_field_lock, false /*exclusive*/);
-      std::map<FieldSpace, std::vector<LocalFieldInfo> >::const_iterator
-          finder = local_field_infos.find(handle);
+      std::map<FieldSpace, std::vector<LocalFieldInfo>>::const_iterator finder =
+          local_field_infos.find(handle);
       legion_assert(finder != local_field_infos.end());
       for (unsigned idx = 0; idx < local_to_free.size(); idx++)
       {
@@ -10728,7 +10619,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock local_lock(local_field_lock);
-      std::map<FieldSpace, std::vector<LocalFieldInfo> >::iterator finder =
+      std::map<FieldSpace, std::vector<LocalFieldInfo>>::iterator finder =
           local_field_infos.find(space);
       legion_assert(finder != local_field_infos.end());
       for (unsigned idx = 0; idx < to_remove.size(); idx++)
@@ -10844,15 +10735,15 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void InnerContext::clone_local_fields(
-        std::map<FieldSpace, std::vector<LocalFieldInfo> >& child_local) const
+        std::map<FieldSpace, std::vector<LocalFieldInfo>>& child_local) const
     //--------------------------------------------------------------------------
     {
       legion_assert(child_local.empty());
       AutoLock local_lock(local_field_lock, false /*exclusive*/);
       if (local_field_infos.empty())
         return;
-      for (const std::pair<const FieldSpace, std::vector<LocalFieldInfo> >&
-               fit : local_field_infos)
+      for (const std::pair<const FieldSpace, std::vector<LocalFieldInfo>>& fit :
+           local_field_infos)
       {
         std::vector<LocalFieldInfo>& child = child_local[fit.first];
         child.resize(fit.second.size());

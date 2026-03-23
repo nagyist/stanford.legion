@@ -151,7 +151,7 @@ namespace Legion {
           std::set<RtEvent>& preconditions) = 0;
       virtual void pack_return_resources(
           Serializer& rez, uint64_t return_index) = 0;
-      virtual void log_created_requirements(void) = 0;
+      virtual void log_created_requirements(void) const = 0;
       virtual void report_leaks_and_duplicates(
           std::set<RtEvent>& preconditions) = 0;
     public:
