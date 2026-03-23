@@ -2179,49 +2179,46 @@ namespace Legion {
     void FutureImpl::register_dependence(Operation* consumer_op)
     //--------------------------------------------------------------------------
     {
-      if (producer_op != nullptr)
+      // Only record dependences on things from the same context
+      // We know futures can never flow up the task tree so the
+      // only way they have the same depth is if they are from
+      // the same parent context
+      TaskContext* consumer_context = consumer_op->get_context();
+      if (consumer_context != context)
       {
-        // Only record dependences on things from the same context
-        // We know futures can never flow up the task tree so the
-        // only way they have the same depth is if they are from
-        // the same parent context
-        TaskContext* consumer_context = consumer_op->get_context();
-        if (consumer_context == context)
+        // Check that the consumer is contained within the task
+        // sub-tree of the producer task
+        TaskTreeCoordinates prod_coords, con_coords;
+        context->compute_task_tree_coordinates(prod_coords);
+        consumer_context->compute_task_tree_coordinates(con_coords);
+        bool contained = (prod_coords.size() <= con_coords.size());
+        if (contained)
         {
-          consumer_op->register_dependence(producer_op, op_gen);
-          LegionSpy::log_future_dependence(
-              context->get_unique_id(), producer_uid,
-              consumer_op->get_unique_op_id());
-        }
-        else
-        {
-          // Check that the consumer is contained within the task
-          // sub-tree of the producer task
-          TaskTreeCoordinates prod_coords, con_coords;
-          context->compute_task_tree_coordinates(prod_coords);
-          consumer_context->compute_task_tree_coordinates(con_coords);
-          bool contained = (prod_coords.size() <= con_coords.size());
-          if (contained)
+          for (unsigned idx = 0; idx < prod_coords.size(); idx++)
           {
-            for (unsigned idx = 0; idx < prod_coords.size(); idx++)
-            {
-              if (prod_coords[idx] == con_coords[idx])
-                continue;
-              contained = false;
-              break;
-            }
-          }
-          if (!contained)
-          {
-            Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
-            error << "Illegal use of " << *this << " produced in context "
-                  << *context << " but consumed in context "
-                  << *consumer_context << " by operation " << *consumer_op
-                  << ". Futures are only permitted to be used in the task "
-                  << "sub-tree rooted by the context that produced the future.";
-            error.raise();
+            if (prod_coords[idx] == con_coords[idx])
+              continue;
+            contained = false;
+            break;
           }
         }
+        if (!contained)
+        {
+          Error error(LEGION_PROGRAMMING_MODEL_EXCEPTION);
+          error << "Illegal use of " << *this << " produced in context "
+                << *context << " but consumed in context " << *consumer_context
+                << " by operation " << *consumer_op
+                << ". Futures are only permitted to be used in the task "
+                << "sub-tree rooted by the context that produced the future.";
+          error.raise();
+        }
+      }
+      else if (producer_op != nullptr)
+      {
+        consumer_op->register_dependence(producer_op, op_gen);
+        LegionSpy::log_future_dependence(
+            context->get_unique_id(), producer_uid,
+            consumer_op->get_unique_op_id());
       }
       else
         legion_assert(
