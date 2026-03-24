@@ -110,6 +110,13 @@ enum Commands {
 
         #[arg(
             long,
+            default_value_t = 1000,
+            help = "stop subdividing tiles at or below this size"
+        )]
+        min_tile_size: u64,
+
+        #[arg(
+            long,
             default_value_t = 10,
             help = "zstd compression factor for archive"
         )]
@@ -402,6 +409,7 @@ fn main() -> io::Result<()> {
             out,
             levels,
             branch_factor,
+            min_tile_size,
             zstd_compression,
             ..
         } => {
@@ -413,6 +421,7 @@ fn main() -> io::Result<()> {
                     state,
                     levels,
                     branch_factor,
+                    min_tile_size,
                     out.output,
                     out.force,
                     zstd_compression,

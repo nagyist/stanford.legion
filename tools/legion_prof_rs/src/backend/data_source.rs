@@ -6,9 +6,10 @@ use legion_prof_viewer::{
     data::{
         self, Color32, DataSource, DataSourceDescription, DataSourceInfo, EntryID, EntryInfo,
         Field, FieldID, FieldSchema, Item, ItemField, ItemLink, ItemMeta, ItemUID, Rgba,
-        SlotMetaTile, SlotMetaTileData, SlotTile, SlotTileData, SummaryTile, SummaryTileData,
-        TileID, TileSet, UtilPoint,
+        SampleFormat, SlotMetaTile, SlotMetaTileData, SlotTile, SlotTileData, SummaryTile,
+        SummaryTileData, TileID, UtilPoint,
     },
+    summary::{resample_step_utilization, slice_utilization},
     timestamp as ts,
 };
 
@@ -26,7 +27,7 @@ use crate::state::{
     BacktraceID, ChanEntry, ChanID, Color, Container, ContainerEntry, Copy, CopyInstInfo, DepPart,
     DepPartInstInfo, DeviceKind, Dim, DimKind, EventEntry, EventEntryKind, EventID, Fill,
     FillInstInfo, Inst, MemID, MemKind, NodeID, OpID, PrivilegeMode, ProcEntryKind, ProcID,
-    ProcKind, ProfUID, ProvenanceID, State, TimeRange, Timestamp,
+    ProcKind, ProfUID, ProvenanceID, State, TimeRange, Timestamp, WaitInterval,
 };
 
 impl Into<ts::Timestamp> for Timestamp {
@@ -78,12 +79,10 @@ enum EntryKind {
 #[derive(Debug, Clone)]
 struct ItemInfo {
     point_interval: ts::Interval,
-    expand: bool,
 }
 
 #[derive(Debug, Clone)]
 pub struct Fields {
-    expanded_for_visibility: FieldID,
     operation: FieldID,
     insts: FieldID,
     inst_fields: FieldID,
@@ -93,6 +92,7 @@ pub struct Fields {
     size: FieldID,
     interval: FieldID,
     num_items: FieldID,
+    hidden_waits: FieldID,
     provenance: FieldID,
     status_ready: FieldID,
     status_running: FieldID,
@@ -130,7 +130,7 @@ pub struct StateDataSource {
     chan_entries: BTreeMap<ChanID, EntryID>,
     chan_groups: BTreeMap<Option<NodeID>, Vec<ChanID>>,
     deppart_groups: BTreeMap<Option<NodeID>, Vec<ChanID>>,
-    step_utilization_cache: Mutex<BTreeMap<EntryID, Arc<Vec<(Timestamp, f64)>>>>,
+    step_utilization_cache: Mutex<BTreeMap<EntryID, Arc<Vec<UtilPoint>>>>,
 }
 
 impl StateDataSource {
@@ -138,8 +138,6 @@ impl StateDataSource {
         let mut field_schema = FieldSchema::new();
 
         let fields = Fields {
-            expanded_for_visibility: field_schema
-                .insert("(Expanded for Visibility)".to_owned(), false),
             operation: field_schema.insert("Operation".to_owned(), true),
             insts: field_schema.insert("Instances".to_owned(), true),
             inst_fields: field_schema.insert("Fields".to_owned(), true),
@@ -148,6 +146,7 @@ impl StateDataSource {
             inst_layout: field_schema.insert("Layout".to_owned(), true),
             interval: field_schema.insert("Lifetime".to_owned(), false),
             num_items: field_schema.insert("Number of Items".to_owned(), false),
+            hidden_waits: field_schema.insert("Contains Hidden Waits".to_owned(), false),
             provenance: field_schema.insert("Provenance".to_owned(), true),
             size: field_schema.insert("Size".to_owned(), true),
             status_ready: field_schema.insert("Ready".to_owned(), false),
@@ -594,6 +593,94 @@ impl StateDataSource {
     }
 }
 
+/// Merge small tasks to reduce load on renderer
+fn merge_items(
+    interval: ts::Interval,
+    tile_id: TileID,
+    full: bool,
+    last: &mut Item,
+    last_meta: Option<&mut ItemMeta>,
+    num_items_field: FieldID,
+    merged: &mut u64,
+) -> bool {
+    // Never merge anything in a full profile.
+    if full {
+        return false;
+    }
+
+    let tile_interval = tile_id.0;
+    let screen_space_fraction =
+        |interval: ts::Interval| interval.duration_ns() as f64 / tile_interval.duration_ns() as f64;
+
+    // Merge two items if:
+    //  1.
+    //     a. Both items are <= size limit,
+    //     OR
+    //     b. Previous item is a merge and current is <= size limit,
+    //  AND
+    //  2. Distance between them is less than the distance limit
+
+    // Merge two items if they are each smaller than or equal to this size
+    // (measured relative to the size of the current tile interval)
+    const MERGE_ITEM_MAX_SIZE: f64 = 1.0e-3;
+
+    // Merge two items if they are at more this far apart
+    // (measured relative to the size of the current tile interval)
+    const MERGE_ITEM_MAX_DISTANCE: f64 = 1.0e-3;
+
+    let last_item_ok_to_merge =
+        *merged > 0 || screen_space_fraction(last.interval) <= MERGE_ITEM_MAX_SIZE;
+    let current_item_ok_to_merge = screen_space_fraction(interval) <= MERGE_ITEM_MAX_SIZE;
+    let distance_in_limit =
+        screen_space_fraction(ts::Interval::new(last.interval.stop, interval.start))
+            <= MERGE_ITEM_MAX_DISTANCE;
+
+    if last_item_ok_to_merge && current_item_ok_to_merge && distance_in_limit {
+        last.interval.stop = interval.stop;
+        last.color = Color::GRAY.into();
+        if let Some(last_meta) = last_meta {
+            if let Some(ItemField(_, Field::U64(value), _)) = last_meta.fields.get_mut(0) {
+                *value += 1;
+            } else {
+                last_meta.title = "Merged Tasks".to_owned();
+                last_meta.fields = vec![ItemField(num_items_field, Field::U64(2), None)];
+            }
+        }
+        *merged += 1;
+        return true;
+    }
+    *merged = 0;
+    false
+}
+
+/// Filter out short waits (that won't be visible to the user)
+fn show_wait_interval(wait: &WaitInterval, tile_id: TileID, full: bool) -> bool {
+    // Never filter anything in a full profile.
+    if full {
+        return true;
+    }
+
+    let tile_interval = tile_id.0;
+    let screen_space_fraction =
+        |interval: ts::Interval| interval.duration_ns() as f64 / tile_interval.duration_ns() as f64;
+
+    // Hide wait intervals smaller than this size
+    // (measured relative to the size of the current tile interval)
+    const WAIT_INTERVAL_MIN_SIZE: f64 = 5.0e-4;
+
+    let interval = ts::Interval::new(wait.start.into(), wait.end.into());
+    screen_space_fraction(interval) >= WAIT_INTERVAL_MIN_SIZE
+}
+
+fn convert_to_viewer_format(util: Vec<(Timestamp, f64)>) -> Vec<UtilPoint> {
+    util.iter()
+        .map(|&(t, u)| UtilPoint {
+            time: t.into(),
+            util: u as f32,
+        })
+        .collect()
+}
+
 impl StateDataSource {
     /// A step utilization is a series of step functions. At time T, the
     /// utilization takes value U. That value continues until the next
@@ -602,7 +689,7 @@ impl StateDataSource {
     /// interpolation and level of detail. We compute this first because it's
     /// how the profiler internally represents utilization, but we convert it
     /// to a more useful format below.
-    fn generate_step_utilization(&self, entry_id: &EntryID) -> Arc<Vec<(Timestamp, f64)>> {
+    fn generate_step_utilization(&self, entry_id: &EntryID) -> Arc<Vec<UtilPoint>> {
         // This is an INTENTIONAL race; if two requests for the same entry
         // arrive simultaneously, we'll miss in the cache on both and compute
         // the utilization twice. The result should be the same, so this is
@@ -696,157 +783,12 @@ impl StateDataSource {
             }
             _ => unreachable!(),
         };
-        let result = Arc::new(step_utilization);
+        let result = Arc::new(convert_to_viewer_format(step_utilization));
         cache
             .lock()
             .unwrap()
             .insert(entry_id.clone(), result.clone());
         result
-    }
-
-    /// Converts the step utilization into a sample utilization, where each
-    /// utilization point (sample) represents the average utilization over a
-    /// certain time interval. The sample is located in the middle of the
-    /// interval.
-    fn compute_sample_utilization(
-        step_utilization: &[(Timestamp, f64)],
-        interval: ts::Interval,
-        samples: u64,
-    ) -> Vec<UtilPoint> {
-        let start_time = interval.start.0 as u64;
-        let duration = interval.duration_ns() as u64;
-
-        let first_index = step_utilization
-            .partition_point(|&(t, _)| {
-                let t: ts::Timestamp = t.into();
-                t < interval.start
-            })
-            .saturating_sub(1);
-
-        let mut last_index = step_utilization[first_index..].partition_point(|&(t, _)| {
-            let t: ts::Timestamp = t.into();
-            t < interval.stop
-        }) + first_index;
-        if last_index + 1 < step_utilization.len() {
-            last_index += 1;
-        }
-
-        let mut utilization = Vec::new();
-        let mut last_t = 0u64;
-        let mut last_u = 0.0;
-        let mut step_it = step_utilization[first_index..last_index].iter().peekable();
-        for sample in 0..samples {
-            let sample_start = duration * sample / samples + start_time;
-            let sample_stop = duration * (sample + 1) / samples + start_time;
-            if sample_stop - sample_start == 0 {
-                continue;
-            }
-
-            let mut sample_util = 0.0;
-            while let Some((t, u)) = step_it.next_if(|(t, _)| t.to_ns() < sample_stop) {
-                if t.to_ns() < sample_start {
-                    (last_t, last_u) = (t.to_ns(), *u);
-                    continue;
-                }
-
-                // This is a step utilization. So utilization u begins on time
-                // t. That means the previous utilization stop at time t-1.
-                let last_duration = (t.to_ns() - 1).saturating_sub(last_t.max(sample_start));
-                sample_util += last_duration as f64 * last_u;
-
-                (last_t, last_u) = (t.to_ns(), *u);
-            }
-            if last_t < sample_stop {
-                let last_duration = sample_stop - last_t.max(sample_start);
-                sample_util += last_duration as f64 * last_u;
-            }
-
-            sample_util /= (sample_stop - sample_start) as f64;
-            assert!(sample_util <= 1.0);
-            utilization.push(UtilPoint {
-                time: Timestamp::from_ns((sample_start + sample_stop) / 2).into(),
-                util: sample_util as f32,
-            });
-        }
-        utilization
-    }
-
-    /// Items smaller than this should be expanded (and merged, if suitable
-    /// nearby items are found)
-    const MAX_RATIO: f64 = 2000.0;
-
-    /// Items larger than this should NOT be merged, even if nearby an expanded
-    /// item
-    const MIN_RATIO: f64 = 1000.0;
-
-    /// Expand small items to improve visibility
-    fn expand_item(
-        interval: &mut ts::Interval,
-        tile_id: TileID,
-        last: Option<&Item>,
-        merged: u64,
-    ) -> bool {
-        let view_ratio = tile_id.0.duration_ns() as f64 / interval.duration_ns() as f64;
-
-        let expand = view_ratio > Self::MAX_RATIO;
-        if expand {
-            let min_duration = tile_id.0.duration_ns() as f64 / Self::MAX_RATIO;
-            let center = (interval.start.0 + interval.stop.0) as f64 / 2.0;
-            let start = ts::Timestamp((center - min_duration / 2.0) as i64);
-            let stop = ts::Timestamp(start.0 + min_duration as i64);
-            *interval = ts::Interval::new(start, stop);
-
-            // If the previous task is large (and overlaps), shrink to avoid overlapping it
-            if let Some(last) = last {
-                let last_ratio =
-                    tile_id.0.duration_ns() as f64 / last.interval.duration_ns() as f64;
-                if interval.overlaps(last.interval) && last_ratio < Self::MIN_RATIO {
-                    if merged > 0 {
-                        // It's already a merged task, ok to keep merging
-                    } else {
-                        interval.start = last.interval.stop;
-                    }
-                }
-            }
-        }
-        expand
-    }
-
-    /// Merge small tasks to reduce load on renderer
-    fn merge_items(
-        interval: ts::Interval,
-        tile_id: TileID,
-        last: &mut Item,
-        last_meta: Option<&mut ItemMeta>,
-        num_items_field: FieldID,
-        merged: &mut u64,
-    ) -> bool {
-        // Check for overlap with previous task. If so, either one or the
-        // other task was expanded (since tasks don't normally overlap)
-        // and this is a good opportunity to combine them.
-        if last.interval.overlaps(interval) {
-            // If the current task is large, don't merge. Instead,
-            // just modify the previous task so it doesn't overlap
-            let view_ratio = tile_id.0.duration_ns() as f64 / interval.duration_ns() as f64;
-            if view_ratio < Self::MIN_RATIO {
-                last.interval.stop = interval.start;
-            } else {
-                last.interval.stop = interval.stop;
-                last.color = Color::GRAY.into();
-                if let Some(last_meta) = last_meta {
-                    if let Some(ItemField(_, Field::U64(value), _)) = last_meta.fields.get_mut(0) {
-                        *value += 1;
-                    } else {
-                        last_meta.title = "Merged Tasks".to_owned();
-                        last_meta.fields = vec![ItemField(num_items_field, Field::U64(2), None)];
-                    }
-                }
-                *merged += 1;
-                return true;
-            }
-        }
-        *merged = 0;
-        false
     }
 
     fn build_items<C>(
@@ -871,6 +813,8 @@ impl StateDataSource {
         merged.resize(levels, 0u64);
         let points_stacked = cont.time_points_stacked(device);
 
+        let tile_interval = tile_id.0;
+
         for (level, points) in points_stacked.iter().enumerate() {
             let items = &mut items[level];
             let mut item_metas = item_metas.as_mut().map(|m| &mut m[level]);
@@ -878,11 +822,11 @@ impl StateDataSource {
 
             let first_index = points.partition_point(|p| {
                 let stop: ts::Timestamp = cont.entry(p.entry).time_range().stop.unwrap().into();
-                ts::Timestamp(stop.0.saturating_sub(1)) < tile_id.0.start
+                ts::Timestamp(stop.0.saturating_sub(1)) < tile_interval.start
             });
             let last_index = points[first_index..].partition_point(|p| {
                 let start: ts::Timestamp = cont.entry(p.entry).time_range().start.unwrap().into();
-                start < tile_id.0.stop
+                start < tile_interval.stop
             }) + first_index;
 
             #[cfg(debug_assertions)]
@@ -891,12 +835,12 @@ impl StateDataSource {
                 for point in &points[..first_index] {
                     let time_range = cont.entry(point.entry).time_range();
                     let point_interval: ts::Interval = time_range.into();
-                    assert!(!point_interval.overlaps(tile_id.0));
+                    assert!(!point_interval.overlaps(tile_interval));
                 }
                 for point in &points[last_index..] {
                     let time_range = cont.entry(point.entry).time_range();
                     let point_interval: ts::Interval = time_range.into();
-                    assert!(!point_interval.overlaps(tile_id.0));
+                    assert!(!point_interval.overlaps(tile_interval));
                 }
             }
 
@@ -908,23 +852,22 @@ impl StateDataSource {
                     (&entry.base(), entry.time_range(), &entry.waiters());
 
                 let point_interval: ts::Interval = time_range.into();
-                assert!(point_interval.overlaps(tile_id.0));
-                let mut view_interval = point_interval.intersection(tile_id.0);
+                assert!(point_interval.overlaps(tile_interval));
+                let view_interval = point_interval.intersection(tile_interval);
 
                 assert_eq!(level, base.level.unwrap() as usize);
 
-                let expand =
-                    !full && Self::expand_item(&mut view_interval, tile_id, items.last(), *merged);
-
+                // Merge small tasks to reduce load on renderer
                 if let Some(last) = items.last_mut() {
                     let last_meta = if let Some(ref mut item_metas) = item_metas {
                         item_metas.last_mut()
                     } else {
                         None
                     };
-                    if Self::merge_items(
+                    if merge_items(
                         view_interval,
                         tile_id,
+                        full,
                         last,
                         last_meta,
                         self.fields.num_items,
@@ -938,15 +881,9 @@ impl StateDataSource {
                 let color: Color32 = color.into();
                 let color: Rgba = color.into();
 
-                let item_meta = item_metas.as_ref().map(|_| {
-                    get_meta(
-                        entry,
-                        ItemInfo {
-                            point_interval,
-                            expand,
-                        },
-                    )
-                });
+                let item_meta = item_metas
+                    .as_ref()
+                    .map(|_| get_meta(entry, ItemInfo { point_interval }));
 
                 let mut add_item =
                     |interval: ts::Interval,
@@ -956,6 +893,7 @@ impl StateDataSource {
                      wait_provenance: Option<ProvenanceID>,
                      wait_backtrace: Option<BacktraceID>,
                      wait_event: Option<EventID>,
+                     num_hidden_wait_intervals: u64,
                      find_previous_executing: bool| {
                         if !interval.overlaps(tile_id.0) {
                             return;
@@ -975,6 +913,20 @@ impl StateDataSource {
                                 item_meta
                                     .fields
                                     .insert(1, ItemField(status, Field::Interval(interval), None));
+                            }
+                            if num_hidden_wait_intervals > 0 {
+                                item_meta.fields.insert(
+                                    2,
+                                    ItemField(self.fields.hidden_waits, Field::Empty, None),
+                                );
+                                item_meta.fields.insert(
+                                    3,
+                                    ItemField(
+                                        self.fields.num_items,
+                                        Field::U64(num_hidden_wait_intervals),
+                                        None,
+                                    ),
+                                );
                             }
                             if let Some(callee) = wait_callee {
                                 // Filter out any other callee fields
@@ -1093,7 +1045,13 @@ impl StateDataSource {
                     };
                 if let Some(waiters) = waiters {
                     let mut start = time_range.start.unwrap();
+                    let mut num_hidden_wait_intervals = 0u64;
                     for wait in &waiters.wait_intervals {
+                        if !show_wait_interval(wait, tile_id, full) {
+                            num_hidden_wait_intervals += 1;
+                            continue;
+                        }
+
                         let running_interval = ts::Interval::new(start.into(), wait.start.into());
                         let waiting_interval =
                             ts::Interval::new(wait.start.into(), wait.ready.into());
@@ -1106,6 +1064,7 @@ impl StateDataSource {
                             None,
                             None,
                             None,
+                            num_hidden_wait_intervals,
                             false,
                         );
                         add_item(
@@ -1116,6 +1075,7 @@ impl StateDataSource {
                             wait.provenance,
                             wait.backtrace,
                             wait.event,
+                            0,
                             false,
                         );
                         add_item(
@@ -1126,9 +1086,11 @@ impl StateDataSource {
                             None,
                             None,
                             None,
+                            0,
                             true,
                         );
                         start = max(start, wait.end);
+                        num_hidden_wait_intervals = 0;
                     }
                     let stop = time_range.stop.unwrap();
                     if start < stop {
@@ -1141,11 +1103,12 @@ impl StateDataSource {
                             None,
                             None,
                             None,
+                            num_hidden_wait_intervals,
                             false,
                         );
                     }
                 } else {
-                    add_item(view_interval, 1.0, None, None, None, None, None, false);
+                    add_item(view_interval, 1.0, None, None, None, None, None, 0, false);
                 }
             }
         }
@@ -2070,22 +2033,12 @@ impl StateDataSource {
         let proc = self.state.procs.get(&proc_id).unwrap();
         let mut m: Vec<Vec<ItemMeta>> = Vec::new();
         let items = self.build_items(proc, device, tile_id, full, Some(&mut m), |entry, info| {
-            let ItemInfo {
-                point_interval,
-                expand,
-            } = info;
+            let ItemInfo { point_interval } = info;
 
             let name = entry.name(&self.state);
             let provenance = entry.provenance(&self.state);
 
             let mut fields = Vec::new();
-            if expand {
-                fields.push(ItemField(
-                    self.fields.expanded_for_visibility,
-                    Field::Empty,
-                    None,
-                ));
-            }
             fields.push(ItemField(
                 self.fields.interval,
                 Field::Interval(point_interval),
@@ -2538,22 +2491,12 @@ impl StateDataSource {
         let mem = self.state.mems.get(&mem_id).unwrap();
         let mut m: Vec<Vec<ItemMeta>> = Vec::new();
         let items = self.build_items(mem, None, tile_id, full, Some(&mut m), |entry, info| {
-            let ItemInfo {
-                point_interval,
-                expand,
-            } = info;
+            let ItemInfo { point_interval } = info;
 
             let name = format!("Instance {}", InstShort(entry));
             let provenance = entry.provenance(&self.state);
 
             let mut fields = Vec::new();
-            if expand {
-                fields.push(ItemField(
-                    self.fields.expanded_for_visibility,
-                    Field::Empty,
-                    None,
-                ));
-            }
             fields.push(ItemField(
                 self.fields.interval,
                 Field::Interval(point_interval),
@@ -3071,22 +3014,12 @@ impl StateDataSource {
         let chan = self.state.chans.get(&chan_id).unwrap();
         let mut m: Vec<Vec<ItemMeta>> = Vec::new();
         let items = self.build_items(chan, None, tile_id, full, Some(&mut m), |entry, info| {
-            let ItemInfo {
-                point_interval,
-                expand,
-            } = info;
+            let ItemInfo { point_interval } = info;
 
             let name = format!("{}", ChanEntryShort(entry));
             let provenance = entry.provenance(&self.state);
 
             let mut fields = Vec::new();
-            if expand {
-                fields.push(ItemField(
-                    self.fields.expanded_for_visibility,
-                    Field::Empty,
-                    None,
-                ));
-            }
             fields.push(ItemField(
                 self.fields.interval,
                 Field::Interval(point_interval),
@@ -3322,9 +3255,11 @@ impl DataSource for StateDataSource {
         Ok(DataSourceInfo {
             entry_info: self.info.clone(),
             interval: self.interval(),
-            tile_set: TileSet::default(),
+            tile_set: Default::default(),
             field_schema: self.field_schema.clone(),
             warning_message: self.generate_warning_message(),
+            nonempty_tiles: Default::default(),
+            sample_format: SampleFormat::Start,
         })
     }
 
@@ -3334,14 +3269,47 @@ impl DataSource for StateDataSource {
         tile_id: TileID,
         full: bool,
     ) -> data::Result<SummaryTile> {
-        // Pick this number to be approximately the number of pixels we expect
-        // the user to have on their screen. If this is a full tile, increase
-        // this so that we get more resolution when zoomed in.
-        let samples = if full { 4_000 } else { 800 };
+        let mut utilization = self.generate_step_utilization(entry_id).to_vec();
+        let tile_utilization = slice_utilization(&utilization, tile_id.0);
 
-        let step_utilization = self.generate_step_utilization(entry_id);
+        // Resample the utilization plot to reduce the amount of data we send to
+        // the viewer. We provide more resolution for full tiles, though we
+        // still need to limit the size or else disk usage will grow dramatically.
+        let num_samples = if full { 4_000 } else { 800 };
+        if tile_utilization.len() > num_samples as usize {
+            utilization = resample_step_utilization(
+                &tile_utilization,
+                tile_id.0,
+                num_samples,
+                SampleFormat::Start,
+            );
+        } else {
+            // The utilization plot is already small enough so just fix up the
+            // endpoints and return it.
+            utilization = tile_utilization.to_vec();
+            if !utilization.is_empty() {
+                if utilization
+                    .get(1)
+                    .is_some_and(|second| second.time == tile_id.0.start)
+                {
+                    // Second point happens to exactly line up with the tile, so
+                    // just throw away the first point.
+                    utilization.remove(0);
+                } else {
+                    // Clamp first point to tile.
+                    let first = utilization.first_mut().unwrap();
+                    first.time = tile_id.0.clamp_point(first.time);
+                }
 
-        let utilization = Self::compute_sample_utilization(&step_utilization, tile_id.0, samples);
+                if utilization
+                    .last()
+                    .is_some_and(|last| !tile_id.0.contains(last.time))
+                {
+                    // Last point is outside tile, so throw it away.
+                    utilization.pop();
+                }
+            }
+        }
 
         Ok(SummaryTile {
             entry_id: entry_id.clone(),
