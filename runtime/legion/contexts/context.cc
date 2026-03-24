@@ -742,6 +742,12 @@ namespace Legion {
           release_callback ? nullptr : callback_functor, executing_processor,
           owned);
       owner_task->complete_execution();
+      // Clear the thread local task context to prevent users from
+      // calling back into this context now that the task has finished
+      // Do this before calling post-end task to make sure no references
+      // are recorded to this context when we wait on events
+      implicit_context = nullptr;
+      implicit_enclosing_context = 0;
       // If this is an implicit top-level task then we need to finish
       // the implicit profiling of the execution of that top-level task
       // now that everything else is done running
@@ -778,10 +784,6 @@ namespace Legion {
         if (callback_owned)
           delete callback_functor;
       }
-      // Clear the thread local task context to prevent users from
-      // calling back into this context now that the task has finished
-      implicit_context = nullptr;
-      implicit_enclosing_context = 0;
     }
 
     //--------------------------------------------------------------------------
