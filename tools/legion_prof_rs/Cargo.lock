@@ -2953,6 +2953,7 @@ dependencies = [
  "flate2",
  "legion_prof_viewer",
  "log",
+ "log-once",
  "nom",
  "nonmax",
  "num_enum",
@@ -3174,6 +3175,15 @@ name = "log"
 version = "0.4.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
+
+[[package]]
+name = "log-once"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d8a05e3879b317b1b6dbf353e5bba7062bedcc59815267bb23eaa0c576cebf0"
+dependencies = [
+ "log",
+]
 
 [[package]]
 name = "lru"

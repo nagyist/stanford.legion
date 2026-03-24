@@ -14,7 +14,7 @@ use legion_prof_viewer::{
 };
 
 #[cfg(debug_assertions)]
-use log::info;
+use log_once::info_once;
 
 use slice_group_by::GroupBy;
 
@@ -831,7 +831,9 @@ impl StateDataSource {
 
             #[cfg(debug_assertions)]
             {
-                info!("Debug assertions enabled: checking point overlap. This can be expensive.");
+                info_once!(
+                    "Debug assertions enabled: checking point overlap. This can be expensive."
+                );
                 for point in &points[..first_index] {
                     let time_range = cont.entry(point.entry).time_range();
                     let point_interval: ts::Interval = time_range.into();
