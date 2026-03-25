@@ -420,16 +420,18 @@ namespace Legion {
         runtime_call = true;
         if (eager_pause)
         {
-          manager->pause_mapper_call(this);
+          // Set first to avoid reentrancy
           paused = true;
+          manager->pause_mapper_call(this);
         }
       }
       inline void begin_wait(void)
       {
         if (!paused && runtime_call)
         {
-          manager->pause_mapper_call(this);
+          // Set first to avoid reentrancy
           paused = true;
+          manager->pause_mapper_call(this);
         }
       }
       inline void resume_mapper_call(void)
