@@ -1,6 +1,17 @@
 This file lists the major changes as they appear in the stable branch.  No
 attempt is made to keep this list accurate for the master branch.
 
+Version 26.03.0 (March 27, 2026)
+  * Legion
+  * Realm
+    - Realm is now managed as a Git subtree inside the Legion repo
+    - Update Realm to version 77e872a5a9cafa9bb2fe6ae784c01d45ad691d5f
+  * Tools
+    - Legion Prof now uses an adaptive archive format which reduces processing
+       time, memory and disk usage
+    - Improvements to the Legion Prof viewer UI include a horizontal scroll bar
+       and better responsiveness
+
 Version 25.12.0 (December 16, 2025)
   * Legion
     - Re-enable out of order commit while still ensuring that deletion
