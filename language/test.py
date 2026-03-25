@@ -244,7 +244,7 @@ def test_spy(filename, debug, verbose, out_dir, short, timelimit, py_exe_path, l
             run(filename, debug, verbose, timelimit, params + flags + spy_flags, env)
 
             spy_logs = glob.glob(os.path.join(spy_dir, 'spy_*.log'))
-            assert len(spy_logs) > 0
+            assert len(spy_logs) > 0, "application exited successfully but no spy logs are available"
             run_spy(spy_logs, verbose, py_exe_path)
     except:
         raise
@@ -262,7 +262,7 @@ def test_gc(filename, debug, verbose, out_dir, short, timelimit, py_exe_path, le
             run(filename, debug, verbose, timelimit, params + flags + gc_flags, env)
 
             gc_logs = glob.glob(os.path.join(gc_dir, 'gc_*.log'))
-            assert len(gc_logs) > 0
+            assert len(gc_logs) > 0, "application exited successfully but no GC logs are available"
             run_gc(gc_logs, verbose, py_exe_path)
     except:
         raise
@@ -283,7 +283,7 @@ def test_prof(filename, debug, verbose, out_dir, short, timelimit, py_exe_path, 
             run(filename, debug, verbose, timelimit, params + flags + prof_flags, env)
 
             prof_logs = glob.glob(os.path.join(prof_dir, 'prof_*.gz'))
-            assert len(prof_logs) > 0
+            assert len(prof_logs) > 0, "application exited successfully but no profiler logs are available"
             run_prof_rs(prof_dir, prof_logs, verbose, legion_prof_rs)
             run_prof_rs_archive(prof_dir, prof_logs, verbose, legion_prof_rs)
             # we only test subnodes when running on multi-node
